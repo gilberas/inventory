@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Inventory;
+use App\Models\InventoryMovement;
 use App\Models\InventoryTransaction;
 use App\Models\InventoryTransactionItem;
 use App\Models\Product;
@@ -203,5 +205,59 @@ class InventoryController extends Controller
             'quantity_reserved'  => $balance?->quantity_reserved  ?? 0,
             'quantity_on_hand'   => $balance?->quantity_on_hand   ?? 0,
         ]);
+    }
+
+    // ── §5.5: InventoryService-powered endpoints ──────────────────────────────
+
+    // Route: GET /inventory/product/{productId} → name: inventory.product-stock
+    public function productStock(Request $request, int $productId)
+    {
+        $product = Product::findOrFail($productId);
+
+        $balances = Inventory::with('warehouse')
+            ->where('product_id', $productId)
+            ->get(['id', 'warehouse_id', 'quantity', 'valuation_method', 'unit_cost', 'last_updated']);
+
+        return response()->json([
+            'product'  => ['id' => $product->id, 'name' => $product->name, 'sku' => $product->sku],
+            'balances' => $balances,
+        ]);
+    }
+
+    // Route: GET /inventory/movements/{productId} → name: inventory.movements
+    public function movements(Request $request, int $productId)
+    {
+        $product = Product::findOrFail($productId);
+
+        $movements = InventoryMovement::with('warehouse')
+            ->where('product_id', $productId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        if ($request->expectsJson()) {
+            return response()->json($movements);
+        }
+
+        return view('inventory.movements', compact('product', 'movements'));
+    }
+
+    // Route: GET /inventory/out-of-stock → name: inventory.out-of-stock
+    public function outOfStock(Request $request)
+    {
+        $warehouses = Warehouse::active()->get();
+
+        $items = Inventory::with(['product.unit', 'product.category', 'warehouse'])
+            ->where('quantity', '<=', 0)
+            ->when($request->warehouse_id, fn ($q) => $q->where('warehouse_id', $request->warehouse_id))
+            ->paginate(20)
+            ->withQueryString();
+
+        if ($request->expectsJson()) {
+            return response()->json($items);
+        }
+
+        return view('inventory.out-of-stock', compact('items', 'warehouses'));
     }
 }

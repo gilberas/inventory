@@ -107,11 +107,11 @@ Route::middleware(['auth'])->group(function () {
 
         // Stock adjustment
         Route::get('/adjust',      [InventoryController::class, 'adjustment'])->name('adjust');
-        Route::post('/adjust',     [InventoryController::class, 'storeAdjustment'])->name('adjust.store');
+        Route::post('/adjust',     [InventoryController::class, 'storeAdjustment'])->name('adjust.store')->middleware('permission:inventory.adjust');
 
         // Alias: /inventory/adjustment (used in some blade links)
         Route::get('/adjustment',  [InventoryController::class, 'adjustment'])->name('adjustment');
-        Route::post('/adjustment', [InventoryController::class, 'storeAdjustment'])->name('adjustment.store');
+        Route::post('/adjustment', [InventoryController::class, 'storeAdjustment'])->name('adjustment.store')->middleware('permission:inventory.adjust');
 
         // Transaction log
         Route::get('/transactions',      [InventoryController::class, 'transactions'])->name('transactions');
@@ -125,6 +125,12 @@ Route::middleware(['auth'])->group(function () {
 
         // AJAX: get current stock qty for product + warehouse
         Route::get('/stock-level', [InventoryController::class, 'getStockLevel'])->name('stock-level');
+
+        // §5.5 InventoryService-powered routes (RBAC-protected, Hard Rule §6)
+        Route::get('/out-of-stock',            [InventoryController::class, 'outOfStock'])->name('out-of-stock')->middleware('permission:inventory.view');
+        Route::get('/product/{productId}',     [InventoryController::class, 'productStock'])->name('product-stock')->middleware('permission:inventory.view');
+        Route::get('/movements/{productId}',   [InventoryController::class, 'movements'])->name('movements')->middleware('permission:inventory.view');
+        // Note: no PUT/PATCH for movements — append-only (CLAUDE.md Hard Rule §4)
 
         // Single transaction detail (old route pattern kept)
         Route::get('/{transaction}', [InventoryController::class, 'show'])->name('show');
