@@ -88,10 +88,35 @@ Route::middleware(['auth'])->group(function () {
     // ── Units ─────────────────────────────────────────────────
     Route::resource('units', UnitController::class)->except(['show']);
 
-    // ── Warehouses + bin locations ────────────────────────────
-    Route::resource('warehouses', WarehouseController::class);
-    Route::post('warehouses/{warehouse}/locations',              [WarehouseController::class, 'storeLocation'])->name('warehouses.locations.store');
-    Route::delete('warehouses/{warehouse}/locations/{location}', [WarehouseController::class, 'destroyLocation'])->name('warehouses.locations.destroy');
+    // ── Warehouses + transfers + reports (per-action RBAC — Hard Rule §6) ─────
+    Route::prefix('warehouses')->name('warehouses.')->group(function () {
+        // Intra-branch transfers: register BEFORE /{warehouse} to avoid conflict
+        Route::get('/transfers',                      [WarehouseController::class, 'indexTransfers'])->name('transfers.index')->middleware('permission:view warehouses');
+        Route::get('/transfers/create',               [WarehouseController::class, 'createTransfer'])->name('transfers.create')->middleware('permission:create warehouses');
+        Route::post('/transfers',                     [WarehouseController::class, 'storeTransfer'])->name('transfers.store')->middleware('permission:create warehouses');
+        Route::post('/transfers/{transfer}/approve',  [WarehouseController::class, 'approveTransfer'])->name('transfers.approve')->middleware('permission:edit warehouses');
+        Route::post('/transfers/{transfer}/dispatch', [WarehouseController::class, 'dispatchTransfer'])->name('transfers.dispatch')->middleware('permission:edit warehouses');
+        Route::post('/transfers/{transfer}/receive',  [WarehouseController::class, 'receiveTransfer'])->name('transfers.receive')->middleware('permission:edit warehouses');
+
+        // Warehouse CRUD
+        Route::get('/',                      [WarehouseController::class, 'index'])->name('index')->middleware('permission:view warehouses');
+        Route::get('/create',                [WarehouseController::class, 'create'])->name('create')->middleware('permission:create warehouses');
+        Route::post('/',                     [WarehouseController::class, 'store'])->name('store')->middleware(['permission:create warehouses', 'check.warehouse.limit']);
+        Route::get('/{warehouse}',           [WarehouseController::class, 'show'])->name('show')->middleware('permission:view warehouses');
+        Route::get('/{warehouse}/edit',      [WarehouseController::class, 'edit'])->name('edit')->middleware('permission:edit warehouses');
+        Route::put('/{warehouse}',           [WarehouseController::class, 'update'])->name('update')->middleware('permission:edit warehouses');
+        Route::patch('/{warehouse}',         [WarehouseController::class, 'update'])->middleware('permission:edit warehouses');
+        Route::delete('/{warehouse}',        [WarehouseController::class, 'destroy'])->name('destroy')->middleware('permission:delete warehouses');
+
+        // Stock reports per warehouse
+        Route::get('/{warehouse}/stock',      [WarehouseController::class, 'stockReport'])->name('stock')->middleware('permission:view warehouses');
+        Route::get('/{warehouse}/movements',  [WarehouseController::class, 'movementsReport'])->name('movements')->middleware('permission:view warehouses');
+        Route::get('/{warehouse}/valuation',  [WarehouseController::class, 'valuationReport'])->name('valuation')->middleware('permission:view warehouses');
+
+        // Bin locations
+        Route::post('/{warehouse}/locations',              [WarehouseController::class, 'storeLocation'])->name('locations.store')->middleware('permission:edit warehouses');
+        Route::delete('/{warehouse}/locations/{location}', [WarehouseController::class, 'destroyLocation'])->name('locations.destroy')->middleware('permission:delete warehouses');
+    });
 
     // ── Inventory ─────────────────────────────────────────────
     Route::prefix('inventory')->name('inventory.')->group(function () {

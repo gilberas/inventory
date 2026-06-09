@@ -16,7 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'require.2fa'         => Require2FA::class,
             'session.timeout'     => SessionTimeout::class,
-            'check.product.limit' => \App\Http\Middleware\CheckProductLimit::class,
+            'check.product.limit'    => \App\Http\Middleware\CheckProductLimit::class,
+            'check.warehouse.limit'  => \App\Http\Middleware\CheckWarehouseLimit::class,
             'role'                => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission'          => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission'  => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
