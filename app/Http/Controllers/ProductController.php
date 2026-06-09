@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Jobs\ImportProductsJob;
 use App\Models\ActivityLog;
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductImage;
 use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\Warehouse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -111,6 +113,9 @@ class ProductController extends Controller
 
         $validated['status'] = $validated['status'] ?? 'active';
 
+        // Business rule: products must go to leaf categories only
+        $this->assertLeafCategory($validated['category_id']);
+
         $product = DB::transaction(function () use ($validated, $request) {
             $product = Product::create($validated);
 
@@ -177,6 +182,9 @@ class ProductController extends Controller
             'sku'             => "nullable|string|max:100|unique:products,sku,{$product->id}",
             'barcode'         => "nullable|string|max:100|unique:products,barcode,{$product->id}",
         ]);
+
+        // Business rule: products must go to leaf categories only
+        $this->assertLeafCategory($validated['category_id']);
 
         $old = $product->toArray();
 
@@ -395,6 +403,18 @@ class ProductController extends Controller
             }
             fclose($out);
         }, 'products.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    // ── Business rule helpers ─────────────────────────────────────────────────
+
+    private function assertLeafCategory(int $categoryId): void
+    {
+        $category = Category::withoutGlobalScopes()->find($categoryId);
+        if ($category && !$category->isLeaf()) {
+            throw ValidationException::withMessages([
+                'category_id' => ['Products can only be assigned to leaf categories (categories with no sub-categories).'],
+            ]);
+        }
     }
 
     private function exportExcel(array $headers, $rows)

@@ -50,6 +50,7 @@ class ProductTest extends TestCase
 
         $this->categoryId = DB::table('product_categories')->insertGetId([
             'name'       => 'Electronics',
+            'tenant_id'  => $this->tenant->id,
             'is_active'  => true,
             'created_at' => now(),
             'updated_at' => now(),

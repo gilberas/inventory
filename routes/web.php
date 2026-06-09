@@ -61,10 +61,32 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{product}',        [ProductController::class, 'destroy'])->name('destroy')->middleware('permission:delete products');
     });
 
-    // ── Other Catalogue ───────────────────────────────────────
-    Route::resource('categories', CategoryController::class)->except(['show']);
-    Route::resource('brands',     BrandController::class)->except(['show']);
-    Route::resource('units',      UnitController::class)->except(['show']);
+    // ── Categories (per-action RBAC + image upload) ───────────
+    Route::prefix('categories')->name('categories.')->group(function () {
+        Route::get('/',                         [CategoryController::class, 'index'])->name('index')->middleware('permission:view categories');
+        Route::get('/create',                   [CategoryController::class, 'create'])->name('create')->middleware('permission:create categories');
+        Route::post('/',                        [CategoryController::class, 'store'])->name('store')->middleware('permission:create categories');
+        Route::get('/{category}',               [CategoryController::class, 'show'])->name('show')->middleware('permission:view categories');
+        Route::get('/{category}/edit',          [CategoryController::class, 'edit'])->name('edit')->middleware('permission:edit categories');
+        Route::put('/{category}',               [CategoryController::class, 'update'])->name('update')->middleware('permission:edit categories');
+        Route::patch('/{category}',             [CategoryController::class, 'update'])->middleware('permission:edit categories');
+        Route::delete('/{category}',            [CategoryController::class, 'destroy'])->name('destroy')->middleware('permission:delete categories');
+        Route::post('/{category}/image',        [CategoryController::class, 'uploadImage'])->name('image')->middleware('permission:edit categories');
+    });
+
+    // ── Brands (per-action RBAC) ──────────────────────────────
+    Route::prefix('brands')->name('brands.')->group(function () {
+        Route::get('/',                         [BrandController::class, 'index'])->name('index')->middleware('permission:view categories');
+        Route::get('/create',                   [BrandController::class, 'create'])->name('create')->middleware('permission:create categories');
+        Route::post('/',                        [BrandController::class, 'store'])->name('store')->middleware('permission:create categories');
+        Route::get('/{brand}/edit',             [BrandController::class, 'edit'])->name('edit')->middleware('permission:edit categories');
+        Route::put('/{brand}',                  [BrandController::class, 'update'])->name('update')->middleware('permission:edit categories');
+        Route::patch('/{brand}',                [BrandController::class, 'update'])->middleware('permission:edit categories');
+        Route::delete('/{brand}',               [BrandController::class, 'destroy'])->name('destroy')->middleware('permission:delete categories');
+    });
+
+    // ── Units ─────────────────────────────────────────────────
+    Route::resource('units', UnitController::class)->except(['show']);
 
     // ── Warehouses + bin locations ────────────────────────────
     Route::resource('warehouses', WarehouseController::class);
