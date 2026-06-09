@@ -34,10 +34,34 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::middleware(['auth'])->group(function () {
 
     // ── Dashboard ─────────────────────────────────────────────
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware('require.2fa')
+        ->name('dashboard');
 
-    // ── Catalogue ─────────────────────────────────────────────
-    Route::resource('products',   ProductController::class);
+    // ── Products (individual routes for per-action RBAC + plan limit) ─────────
+    Route::prefix('products')->name('products.')->group(function () {
+        // view
+        Route::get('/',                    [ProductController::class, 'index'])->name('index')->middleware('permission:view products');
+        Route::get('/search',              [ProductController::class, 'search'])->name('search')->middleware('permission:view products');
+        Route::get('/export',              [ProductController::class, 'export'])->name('export')->middleware('permission:view products');
+        Route::get('/import/template',     [ProductController::class, 'importTemplate'])->name('import.template')->middleware('permission:view products');
+        Route::get('/create',              [ProductController::class, 'create'])->name('create')->middleware('permission:create products');
+        // create + plan limit (Hard Rule §7)
+        Route::post('/',                   [ProductController::class, 'store'])->name('store')->middleware(['permission:create products', 'check.product.limit']);
+        Route::post('/import',             [ProductController::class, 'import'])->name('import')->middleware(['permission:create products', 'check.product.limit']);
+        // show (after static prefixes to avoid swallowing /create, /search, etc.)
+        Route::get('/{product}',           [ProductController::class, 'show'])->name('show')->middleware('permission:view products');
+        // edit
+        Route::get('/{product}/edit',      [ProductController::class, 'edit'])->name('edit')->middleware('permission:edit products');
+        Route::put('/{product}',           [ProductController::class, 'update'])->name('update')->middleware('permission:edit products');
+        Route::patch('/{product}',         [ProductController::class, 'update'])->middleware('permission:edit products');
+        Route::post('/{product}/images',   [ProductController::class, 'uploadImage'])->name('images.store')->middleware('permission:edit products');
+        Route::delete('/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('images.destroy')->middleware('permission:edit products');
+        // delete
+        Route::delete('/{product}',        [ProductController::class, 'destroy'])->name('destroy')->middleware('permission:delete products');
+    });
+
+    // ── Other Catalogue ───────────────────────────────────────
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::resource('brands',     BrandController::class)->except(['show']);
     Route::resource('units',      UnitController::class)->except(['show']);
