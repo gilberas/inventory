@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ExpenseApproved;
 use App\Models\ActivityLog;
 use App\Models\Expense;
 use App\Models\ExpenseBudget;
 use App\Models\User;
 use App\Notifications\ExpenseApprovalNotification;
 use App\Notifications\ExpenseRejectedNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 
 class ExpenseController extends Controller
 {
@@ -209,7 +213,60 @@ class ExpenseController extends Controller
 
     public function show(Expense $expense)
     {
-        return response()->json(['expense' => $expense->load(['createdBy', 'approvedBy', 'branch'])]);
+        $expense->load(['createdBy', 'approvedBy', 'branch']);
+        return view('expenses.show', compact('expense'));
+    }
+
+    // ── GET /expenses/{expense}/export-pdf ────────────────────────────────────
+
+    public function exportPdf(Expense $expense)
+    {
+        $expense->load(['createdBy', 'approvedBy', 'branch']);
+        $pdf = Pdf::loadView('expenses.export-pdf', compact('expense'));
+        return $pdf->download("expense-{$expense->id}.pdf");
+    }
+
+    // ── GET /expenses/{expense}/export-excel ──────────────────────────────────
+
+    public function exportExcel(Expense $expense)
+    {
+        $expense->load(['createdBy', 'approvedBy', 'branch']);
+        $filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "expense-{$expense->id}.xlsx";
+        $writer   = new XlsxWriter();
+        $writer->openToFile($filename);
+
+        $sheet = $writer->getCurrentSheet();
+        $sheet->setName('Expense');
+
+        $headers = ['Field', 'Value'];
+        $writer->addRow(Row::fromValues($headers));
+
+        $rows = [
+            ['Expense ID',         $expense->id],
+            ['Category',           $expense->category],
+            ['Description',        $expense->description],
+            ['Amount (TZS)',       number_format($expense->amount, 2)],
+            ['Expense Date',       $expense->expense_date],
+            ['Status',             $expense->status],
+            ['Branch',             $expense->branch?->name ?? '—'],
+            ['Created By',         $expense->createdBy?->name ?? '—'],
+            ['Submitted At',       $expense->submitted_at?->format('Y-m-d H:i') ?? '—'],
+            ['Approved By',        $expense->approvedBy?->name ?? '—'],
+            ['Approved At',        $expense->approved_at?->format('Y-m-d H:i') ?? '—'],
+            ['Rejection Reason',   ($expense->status === Expense::STATUS_REJECTED ? $expense->notes : '—')],
+            ['Notes',              $expense->notes ?? '—'],
+            ['Receipt Attached',   $expense->receipt_path ? 'Yes' : 'No'],
+            ['Created At',         $expense->created_at->format('Y-m-d H:i')],
+            ['Updated At',         $expense->updated_at->format('Y-m-d H:i')],
+        ];
+
+        foreach ($rows as $row) {
+            $writer->addRow(Row::fromValues($row));
+        }
+
+        $writer->close();
+
+        return response()->download($filename, "expense-{$expense->id}.xlsx")->deleteFileAfterSend();
     }
 
     // ── PUT /expenses/{expense} ───────────────────────────────────────────────
@@ -290,6 +347,8 @@ class ExpenseController extends Controller
                 'model_id'   => $expense->id,
                 'new_values' => ['status' => Expense::STATUS_APPROVED, 'approved_by' => auth()->id()],
             ]);
+
+            ExpenseApproved::dispatch($expense);
         });
 
         return response()->json(['expense' => $expense->fresh()]);
