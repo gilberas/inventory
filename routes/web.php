@@ -23,6 +23,7 @@ use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FinancialController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -171,11 +172,21 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{transaction}', [InventoryController::class, 'show'])->name('show');
     });
 
-    // ── Stock Transfers ───────────────────────────────────────
-    Route::resource('transfers', StockTransferController::class)->except(['edit', 'update']);
-    Route::post('transfers/{transfer}/approve',  [StockTransferController::class, 'approve'])->name('transfers.approve');
-    Route::post('transfers/{transfer}/dispatch', [StockTransferController::class, 'dispatch'])->name('transfers.dispatch');
-    Route::post('transfers/{transfer}/receive',  [StockTransferController::class, 'receive'])->name('transfers.receive');
+    // ── Branch Stock Transfers (§5.13) ───────────────────────────────────────
+    // View routes (no plan check required — users can see existing transfers)
+    Route::get('transfers',          [StockTransferController::class, 'index'])->name('transfers.index')->middleware('permission:transfers.view');
+    Route::get('transfers/create',   [StockTransferController::class, 'create'])->name('transfers.create')->middleware(['permission:transfers.create', 'check.transfer.feature']);
+    Route::get('transfers/{transfer}', [StockTransferController::class, 'show'])->name('transfers.show')->middleware('permission:transfers.view');
+
+    // Mutating routes require plan feature + permission (Hard Rules §6 & §7)
+    Route::middleware(['permission:transfers.create', 'check.transfer.feature'])->group(function () {
+        Route::post('transfers', [StockTransferController::class, 'store'])->name('transfers.store');
+    });
+    Route::post('transfers/{transfer}/approve',  [StockTransferController::class, 'approve'])->name('transfers.approve')->middleware('permission:transfers.approve');
+    Route::post('transfers/{transfer}/reject',   [StockTransferController::class, 'reject'])->name('transfers.reject')->middleware('permission:transfers.approve');
+    Route::post('transfers/{transfer}/dispatch', [StockTransferController::class, 'dispatch'])->name('transfers.dispatch')->middleware('permission:transfers.dispatch');
+    Route::post('transfers/{transfer}/receive',  [StockTransferController::class, 'receive'])->name('transfers.receive')->middleware('permission:transfers.receive');
+    Route::delete('transfers/{transfer}',        [StockTransferController::class, 'destroy'])->name('transfers.destroy')->middleware('permission:transfers.create');
 
     // ── Suppliers ─────────────────────────────────────────────
     Route::prefix('suppliers')->name('suppliers.')->group(function () {
@@ -273,7 +284,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('sales/{sale}/deliver',  [SalesOrderController::class, 'deliver'])->name('sales.deliver');
     Route::post('sales/{sale}/payment',  [SalesOrderController::class, 'recordPayment'])->name('sales.payment');
     Route::post('sales/{sale}/cancel',   [SalesOrderController::class, 'cancel'])->name('sales.cancel');
-    Route::post('transfers/{transfer}/cancel', [StockTransferController::class, 'cancel'])->name('transfers.cancel');
+    Route::post('transfers/{transfer}/cancel', [StockTransferController::class, 'destroy'])->name('transfers.cancel')->middleware('permission:transfers.create');
 
     // ── POS ───────────────────────────────────────────────────
     Route::prefix('pos')->name('pos.')->group(function () {
@@ -330,6 +341,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/purchases', [ReportController::class, 'purchases'])->name('purchases');
         Route::get('/sales',     [ReportController::class, 'sales'])->name('sales');
         Route::get('/movements', [ReportController::class, 'movements'])->name('movements');
+
+        // §5.12 Financial Management (Hard Rule §6: permission middleware on every route)
+        Route::middleware('permission:reports.financial')->group(function () {
+            Route::get('/income-statement', [FinancialController::class, 'incomeStatement'])->name('financial.income-statement');
+            Route::get('/cash-flow',        [FinancialController::class, 'cashFlow'])->name('financial.cash-flow');
+            Route::get('/balance-sheet',    [FinancialController::class, 'balanceSheet'])->name('financial.balance-sheet');
+            Route::get('/export/{report}/pdf',   [FinancialController::class, 'exportPdf'])->name('financial.export.pdf');
+            Route::get('/export/{report}/excel', [FinancialController::class, 'exportExcel'])->name('financial.export.excel');
+        });
+
+        // VAT report uses a separate, more restricted permission
+        Route::middleware('permission:reports.vat')->group(function () {
+            Route::get('/vat', [FinancialController::class, 'vatReport'])->name('financial.vat');
+        });
     });
 
     // ── Profile ───────────────────────────────────────────────

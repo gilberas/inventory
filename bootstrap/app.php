@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'session.timeout'     => SessionTimeout::class,
             'check.product.limit'    => \App\Http\Middleware\CheckProductLimit::class,
             'check.warehouse.limit'  => \App\Http\Middleware\CheckWarehouseLimit::class,
+            'check.pos.terminal'     => \App\Http\Middleware\CheckPOSTerminalLimit::class,
+            'check.transfer.feature' => \App\Http\Middleware\CheckStockTransferFeature::class,
             'role'                => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission'          => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission'  => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Stock Transfers')
-@section('breadcrumb', 'Inventory / Transfers')
+@section('title', 'Branch Stock Transfers')
+@section('breadcrumb', 'Inventory / Branch Transfers')
 
 @section('topbar-actions')
     <a href="{{ route('transfers.create') }}" class="btn btn-primary btn-sm">
@@ -22,19 +22,19 @@
                     </option>
                 @endforeach
             </select>
-            <select name="from_warehouse_id" onchange="this.form.submit()" style="width:auto;min-width:160px">
-                <option value="">From: All Warehouses</option>
-                @foreach($warehouses as $wh)
-                    <option value="{{ $wh->id }}" {{ request('from_warehouse_id') == $wh->id ? 'selected' : '' }}>
-                        {{ $wh->name }}
+            <select name="from_branch_id" onchange="this.form.submit()" style="width:auto;min-width:160px">
+                <option value="">From: All Branches</option>
+                @foreach($branches as $branch)
+                    <option value="{{ $branch->id }}" {{ request('from_branch_id') == $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }}
                     </option>
                 @endforeach
             </select>
-            <select name="to_warehouse_id" onchange="this.form.submit()" style="width:auto;min-width:160px">
-                <option value="">To: All Warehouses</option>
-                @foreach($warehouses as $wh)
-                    <option value="{{ $wh->id }}" {{ request('to_warehouse_id') == $wh->id ? 'selected' : '' }}>
-                        {{ $wh->name }}
+            <select name="to_branch_id" onchange="this.form.submit()" style="width:auto;min-width:160px">
+                <option value="">To: All Branches</option>
+                @foreach($branches as $branch)
+                    <option value="{{ $branch->id }}" {{ request('to_branch_id') == $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }}
                     </option>
                 @endforeach
             </select>
@@ -45,13 +45,13 @@
         <table>
             <thead>
                 <tr>
-                    <th>Reference</th>
-                    <th>From</th>
-                    <th>To</th>
+                    <th>#</th>
+                    <th>From Branch</th>
+                    <th>To Branch</th>
                     <th>Items</th>
-                    <th>Date</th>
+                    <th>Requested</th>
                     <th>Status</th>
-                    <th>Created By</th>
+                    <th>By</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -59,30 +59,22 @@
                 @forelse($transfers as $transfer)
                 @php
                     $statusColors = [
-                        'PENDING'    => 'badge-amber',
-                        'APPROVED'   => 'badge-sky',
-                        'IN_TRANSIT' => 'badge-purple',
-                        'COMPLETED'  => 'badge-green',
-                        'CANCELLED'  => 'badge-red',
+                        'pending'    => 'badge-amber',
+                        'approved'   => 'badge-sky',
+                        'dispatched' => 'badge-purple',
+                        'received'   => 'badge-green',
+                        'rejected'   => 'badge-red',
                     ];
                     $color = $statusColors[$transfer->status] ?? 'badge-gray';
                 @endphp
                 <tr>
-                    <td style="font-family:monospace;color:var(--muted)">
-                        {{ $transfer->reference_no }}
-                    </td>
-                    <td>{{ $transfer->fromWarehouse->name }}</td>
-                    <td>{{ $transfer->toWarehouse->name }}</td>
-                    <td>{{ $transfer->items_count }} item(s)</td>
-                    <td style="color:var(--muted)">
-                        {{ $transfer->transfer_date?->format('d M Y') }}
-                    </td>
-                    <td>
-                        <span class="badge {{ $color }}">
-                            {{ $transfer->status_label ?? ucfirst(strtolower(str_replace('_', ' ', $transfer->status))) }}
-                        </span>
-                    </td>
-                    <td style="color:var(--muted)">{{ $transfer->createdBy->name ?? '—' }}</td>
+                    <td style="font-family:monospace;color:var(--muted)">{{ $transfer->id }}</td>
+                    <td>{{ $transfer->fromBranch?->name ?? '—' }}</td>
+                    <td>{{ $transfer->toBranch?->name ?? '—' }}</td>
+                    <td>{{ $transfer->items_count ?? 0 }} item(s)</td>
+                    <td style="color:var(--muted)">{{ $transfer->created_at->format('d M Y') }}</td>
+                    <td><span class="badge {{ $color }}">{{ ucfirst($transfer->status) }}</span></td>
+                    <td style="color:var(--muted)">{{ $transfer->requestedBy?->name ?? '—' }}</td>
                     <td>
                         <div style="display:flex;gap:.35rem;flex-wrap:wrap">
                             <a href="{{ route('transfers.show', $transfer) }}"
@@ -90,38 +82,26 @@
                                 <i class="fas fa-eye"></i>
                             </a>
 
-                            @if($transfer->status === 'PENDING')
+                            @if($transfer->status === 'pending')
                                 <form method="POST" action="{{ route('transfers.approve', $transfer) }}">
                                     @csrf
-                                    <button class="btn btn-success btn-sm" title="Approve">
+                                    <button class="btn btn-success btn-sm">
                                         <i class="fas fa-check"></i> Approve
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('transfers.cancel', $transfer) }}"
-                                      onsubmit="return confirm('Cancel this transfer?')">
+                                <form method="POST" action="{{ route('transfers.reject', $transfer) }}">
                                     @csrf
-                                    <button class="btn btn-danger btn-sm btn-icon" title="Cancel">
-                                        <i class="fas fa-times"></i>
+                                    <input type="hidden" name="reason" value="Rejected by manager">
+                                    <button class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times"></i> Reject
                                     </button>
                                 </form>
                             @endif
 
-                            @if($transfer->status === 'APPROVED')
-                                <form method="POST" action="{{ route('transfers.dispatch', $transfer) }}">
-                                    @csrf
-                                    <button class="btn btn-primary btn-sm">
-                                        <i class="fas fa-truck-fast"></i> Dispatch
-                                    </button>
-                                </form>
-                            @endif
-
-                            @if($transfer->status === 'IN_TRANSIT')
-                                <form method="POST" action="{{ route('transfers.receive', $transfer) }}">
-                                    @csrf
-                                    <button class="btn btn-success btn-sm">
-                                        <i class="fas fa-box-open"></i> Receive
-                                    </button>
-                                </form>
+                            @if($transfer->status === 'dispatched')
+                                <a href="{{ route('transfers.show', $transfer) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-box-open"></i> Receive
+                                </a>
                             @endif
                         </div>
                     </td>
@@ -132,7 +112,7 @@
                         <div class="empty-state">
                             <i class="fas fa-truck-fast"></i>
                             <h3>No transfers found</h3>
-                            <p>Create a transfer to move stock between warehouses.</p>
+                            <p>Create a transfer to move stock between branches.</p>
                             <a href="{{ route('transfers.create') }}" class="btn btn-primary btn-sm" style="margin-top:.75rem">
                                 <i class="fas fa-plus"></i> New Transfer
                             </a>
