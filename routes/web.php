@@ -22,6 +22,7 @@ use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ExpenseController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -298,6 +299,25 @@ Route::middleware(['auth'])->group(function () {
 
         // Loyalty points redemption
         Route::post('/loyalty/redeem', [CustomerController::class, 'redeemLoyalty'])->name('loyalty.redeem')->middleware('permission:sales.create');
+    });
+
+    // ── Expenses ─────────────────────────────────────────────
+    Route::prefix('expenses')->name('expenses.')->group(function () {
+        // Static routes BEFORE /{expense} to avoid route conflicts
+        Route::get('/',         [ExpenseController::class, 'index'])->name('index')->middleware('permission:expenses.view');
+        Route::post('/',        [ExpenseController::class, 'store'])->name('store')->middleware('permission:expenses.create');
+        Route::get('/summary',  [ExpenseController::class, 'summary'])->name('summary')->middleware('permission:expenses.view');
+        Route::get('/budgets',  [ExpenseController::class, 'indexBudgets'])->name('budgets.index')->middleware('permission:expenses.view');
+        Route::post('/budgets', [ExpenseController::class, 'storeBudget'])->name('budgets.store')->middleware('permission:expenses.manage');
+
+        // Per-expense routes
+        Route::get('/{expense}',             [ExpenseController::class, 'show'])->name('show')->middleware('permission:expenses.view');
+        Route::put('/{expense}',             [ExpenseController::class, 'update'])->name('update')->middleware('permission:expenses.create');
+        Route::patch('/{expense}',           [ExpenseController::class, 'update'])->middleware('permission:expenses.create');
+        Route::post('/{expense}/submit',     [ExpenseController::class, 'submit'])->name('submit')->middleware('permission:expenses.create');
+        Route::post('/{expense}/approve',    [ExpenseController::class, 'approve'])->name('approve')->middleware('permission:expenses.manage');
+        Route::post('/{expense}/reject',     [ExpenseController::class, 'reject'])->name('reject')->middleware('permission:expenses.manage');
+        Route::post('/{expense}/receipt',    [ExpenseController::class, 'uploadReceipt'])->name('receipt')->middleware('permission:expenses.create');
     });
 
     // ── Reports ───────────────────────────────────────────────
