@@ -28,15 +28,17 @@ class POSService
         array   $items,
         string  $paymentMethod,
         int     $warehouseId,
-        float   $discount      = 0.0,
-        float   $tax           = 0.0,
-        ?int    $customerId    = null,
-        array   $splitPayments = [],
-        ?string $mpesaPhone    = null,
+        float   $discount       = 0.0,
+        float   $tax            = 0.0,
+        ?int    $customerId     = null,
+        array   $splitPayments  = [],
+        ?string $mpesaPhone     = null,
+        ?float  $amountTendered = null,
+        ?int    $posSessionId   = null,
     ): Sale {
         return DB::transaction(function () use (
             $items, $paymentMethod, $warehouseId,
-            $discount, $tax, $customerId, $splitPayments, $mpesaPhone
+            $discount, $tax, $customerId, $splitPayments, $mpesaPhone, $amountTendered, $posSessionId
         ) {
             $itemsTotal = collect($items)->sum(
                 fn($i) => (float) $i['qty'] * (float) $i['unit_price'] - (float) ($i['discount'] ?? 0)
@@ -59,6 +61,7 @@ class POSService
                 'cashier_id'     => auth()->id(),
                 'customer_id'    => $customerId,
                 'warehouse_id'   => $warehouseId,
+                'pos_session_id' => $posSessionId,
                 'total'          => $itemsTotal,
                 'discount'       => $discount,
                 'tax'            => $tax,
@@ -106,7 +109,13 @@ class POSService
                 $this->createPaymentRecord($sale->id, $paymentMethod, $grandTotal, Payment::STATUS_PENDING, $response['CheckoutRequestID'] ?? null);
                 $saleStatus = Sale::STATUS_PENDING;
             } else {
-                $this->createPaymentRecord($sale->id, $paymentMethod, $grandTotal, Payment::STATUS_COMPLETED);
+                $changeGiven = ($paymentMethod === 'cash' && $amountTendered !== null)
+                    ? max(0.0, $amountTendered - $grandTotal)
+                    : null;
+                $notes = ($amountTendered !== null)
+                    ? "Tendered: {$amountTendered}" . ($changeGiven !== null ? " | Change: {$changeGiven}" : '')
+                    : null;
+                $this->createPaymentRecord($sale->id, $paymentMethod, $grandTotal, Payment::STATUS_COMPLETED, null, $notes);
             }
 
             // 4. Mark sale completed / still pending
@@ -139,7 +148,7 @@ class POSService
         });
     }
 
-    private function createPaymentRecord(int $saleId, string $method, float $amount, string $status, ?string $reference = null): void
+    private function createPaymentRecord(int $saleId, string $method, float $amount, string $status, ?string $reference = null, ?string $notes = null): void
     {
         // Map POS method → legacy payment_method enum (CASH/MOBILE_MONEY/OTHER)
         $legacyMethod = match ($method) {
@@ -155,6 +164,7 @@ class POSService
             'amount'         => $amount,
             'method'         => $method,
             'reference'      => $reference,
+            'notes'          => $notes,
             'status'         => $status,
             'payment_method' => $legacyMethod,
             'payment_date'   => now()->toDateString(),
