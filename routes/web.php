@@ -24,6 +24,7 @@ use App\Http\Controllers\POSController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FinancialController;
+use App\Http\Controllers\InventoryAuditController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -170,6 +171,17 @@ Route::middleware(['auth'])->group(function () {
 
         // Single transaction detail (old route pattern kept)
         Route::get('/{transaction}', [InventoryController::class, 'show'])->name('show');
+    });
+
+    // ── Inventory Audits (§5.14) ─────────────────────────────────────────────
+    Route::prefix('audits')->name('audits.')->group(function () {
+        Route::get('/',                        [InventoryAuditController::class, 'index'])->name('index')->middleware('permission:inventory.audit');
+        Route::post('/',                       [InventoryAuditController::class, 'store'])->name('store')->middleware('permission:inventory.audit');
+        Route::get('/{audit}',                 [InventoryAuditController::class, 'show'])->name('show')->middleware('permission:inventory.audit');
+        Route::get('/{audit}/sheet',           [InventoryAuditController::class, 'sheet'])->name('sheet')->middleware('permission:inventory.audit_count');
+        Route::post('/{audit}/counts',         [InventoryAuditController::class, 'counts'])->name('counts')->middleware('permission:inventory.audit_count');
+        Route::get('/{audit}/variance',        [InventoryAuditController::class, 'variance'])->name('variance')->middleware('permission:inventory.audit');
+        Route::post('/{audit}/post',           [InventoryAuditController::class, 'post'])->name('post')->middleware('permission:inventory.audit');
     });
 
     // ── Branch Stock Transfers (§5.13) ───────────────────────────────────────

@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Events\LowStockDetected;
 use App\Events\OutOfStockDetected;
+use App\Exceptions\AuditInProgressException;
 use App\Exceptions\InsufficientStockException;
 use App\Models\ActivityLog;
 use App\Models\Inventory;
+use App\Models\InventoryAudit;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\Warehouse;
@@ -16,6 +18,26 @@ use Illuminate\Validation\ValidationException;
 class InventoryService
 {
     // ── Public API ────────────────────────────────────────────────────────────
+
+    /**
+     * Throws AuditInProgressException if an active (non-posted) audit exists for the warehouse.
+     * Called by stockIn, stockOut, and adjust to enforce the audit lock (§5.14).
+     */
+    public function assertNoActiveAudit(int $warehouseId): void
+    {
+        $active = InventoryAudit::withoutGlobalScopes()
+            ->where('warehouse_id', $warehouseId)
+            ->whereIn('status', [
+                InventoryAudit::STATUS_INITIATED,
+                InventoryAudit::STATUS_COUNTING,
+                InventoryAudit::STATUS_COMPLETED,
+            ])
+            ->exists();
+
+        if ($active) {
+            throw new AuditInProgressException($warehouseId);
+        }
+    }
 
     public function stockIn(
         int $productId,
@@ -27,6 +49,8 @@ class InventoryService
         int $userId,
         ?string $notes = null
     ): void {
+        $this->assertNoActiveAudit($warehouseId);
+
         DB::transaction(function () use ($productId, $warehouseId, $qty, $unitCost, $refType, $refId, $userId, $notes) {
             $inv = Inventory::firstOrCreate(
                 ['product_id' => $productId, 'warehouse_id' => $warehouseId],
@@ -72,6 +96,8 @@ class InventoryService
         int $userId,
         ?string $notes = null
     ): void {
+        $this->assertNoActiveAudit($warehouseId);
+
         DB::transaction(function () use ($productId, $warehouseId, $qty, $refType, $refId, $userId, $notes) {
             // Pessimistic lock prevents overselling under concurrent requests
             $inv = Inventory::where('product_id', $productId)
@@ -117,6 +143,8 @@ class InventoryService
         string $reason,
         int $userId
     ): void {
+        $this->assertNoActiveAudit($warehouseId);
+
         if (trim($reason) === '') {
             throw ValidationException::withMessages(['reason' => ['Adjustment reason is required.']]);
         }
