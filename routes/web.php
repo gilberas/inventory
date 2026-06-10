@@ -25,6 +25,10 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\InventoryAuditController;
+use App\Http\Controllers\BarcodeController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ShiftController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -186,9 +190,10 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Branch Stock Transfers (§5.13) ───────────────────────────────────────
     // View routes (no plan check required — users can see existing transfers)
-    Route::get('transfers',          [StockTransferController::class, 'index'])->name('transfers.index')->middleware('permission:transfers.view');
-    Route::get('transfers/create',   [StockTransferController::class, 'create'])->name('transfers.create')->middleware(['permission:transfers.create', 'check.transfer.feature']);
-    Route::get('transfers/{transfer}', [StockTransferController::class, 'show'])->name('transfers.show')->middleware('permission:transfers.view');
+    Route::get('transfers',                [StockTransferController::class, 'index'])->name('transfers.index')->middleware('permission:transfers.view');
+    Route::get('transfers/create',         [StockTransferController::class, 'create'])->name('transfers.create')->middleware(['permission:transfers.create', 'check.transfer.feature']);
+    Route::get('transfers/quick-create',   [StockTransferController::class, 'quickCreate'])->name('transfers.quick-create')->middleware(['permission:transfers.create', 'check.transfer.feature']);
+    Route::get('transfers/{transfer}',     [StockTransferController::class, 'show'])->name('transfers.show')->middleware('permission:transfers.view');
 
     // Mutating routes require plan feature + permission (Hard Rules §6 & §7)
     Route::middleware(['permission:transfers.create', 'check.transfer.feature'])->group(function () {
@@ -227,7 +232,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{purchase}',         [PurchaseOrderController::class, 'destroy'])->name('destroy')->middleware('permission:purchases.manage');
         Route::post('/{purchase}/submit',    [PurchaseOrderController::class, 'submit'])->name('submit')->middleware('permission:purchases.create');
         Route::post('/{purchase}/approve',   [PurchaseOrderController::class, 'approve'])->name('approve')->middleware('permission:purchases.manage');
-        Route::post('/{purchase}/receive',   [PurchaseOrderController::class, 'receive'])->name('receive')->middleware('permission:purchases.receive');
+        Route::get('/{purchase}/receive',    [PurchaseOrderController::class, 'receive'])->name('receive')->middleware('permission:purchases.receive');
+        Route::post('/{purchase}/receive',   [PurchaseOrderController::class, 'storeReceipt'])->name('storeReceipt')->middleware('permission:purchases.receive');
         Route::get('/{purchase}/pdf',        [PurchaseOrderController::class, 'pdf'])->name('pdf')->middleware('permission:purchases.view');
     });
 
@@ -240,7 +246,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{requisition}/submit', [RequisitionController::class, 'submit'])->name('submit')->middleware('permission:purchases.view');
         Route::post('/{requisition}/approve',[RequisitionController::class, 'approve'])->name('approve')->middleware('permission:purchases.manage');
         Route::post('/{requisition}/reject', [RequisitionController::class, 'reject'])->name('reject')->middleware('permission:purchases.manage');
-        Route::post('/{requisition}/revise', [RequisitionController::class, 'revise'])->name('revise')->middleware('permission:purchases.manage');
+        Route::post('/{requisition}/revise',    [RequisitionController::class, 'revise'])->name('revise')->middleware('permission:purchases.manage');
+        Route::post('/{requisition}/resubmit', [RequisitionController::class, 'resubmit'])->name('resubmit')->middleware('permission:purchases.view');
     });
 
     // ── Goods Received Notes ──────────────────────────────────
@@ -300,6 +307,9 @@ Route::middleware(['auth'])->group(function () {
 
     // ── POS ───────────────────────────────────────────────────
     Route::prefix('pos')->name('pos.')->group(function () {
+        // Terminal UI (CA-1)
+        Route::get('/',               [POSController::class, 'terminal'])->name('terminal')->middleware('permission:sales.create');
+
         // Session management (terminal limit check on open only — Hard Rule §7)
         Route::get('/session',        [POSController::class, 'session'])->name('session')->middleware('permission:sales.create');
         Route::post('/session/open',  [POSController::class, 'openSession'])->name('session.open')->middleware(['permission:sales.create', 'check.pos.terminal']);
@@ -341,18 +351,41 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{expense}/approve',    [ExpenseController::class, 'approve'])->name('approve')->middleware('permission:expenses.manage');
         Route::post('/{expense}/reject',     [ExpenseController::class, 'reject'])->name('reject')->middleware('permission:expenses.manage');
         Route::post('/{expense}/receipt',    [ExpenseController::class, 'uploadReceipt'])->name('receipt')->middleware('permission:expenses.create');
+        Route::get('/{expense}/export-pdf',  [ExpenseController::class, 'exportPdf'])->name('export-pdf')->middleware('permission:expenses.view');
+        Route::get('/{expense}/export-excel',[ExpenseController::class, 'exportExcel'])->name('export-excel')->middleware('permission:expenses.view');
     });
 
     // ── Reports ───────────────────────────────────────────────
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/',          [ReportController::class, 'index'])->name('index');
-        Route::get('/stock',     [ReportController::class, 'stockOnHand'])->name('stock');
-        Route::get('/low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
-        Route::get('/expiry',    [ReportController::class, 'expiry'])->name('expiry');
-        Route::get('/valuation', [ReportController::class, 'valuation'])->name('valuation');
-        Route::get('/purchases', [ReportController::class, 'purchases'])->name('purchases');
-        Route::get('/sales',     [ReportController::class, 'sales'])->name('sales');
-        Route::get('/movements', [ReportController::class, 'movements'])->name('movements');
+        Route::middleware('permission:reports.view')->group(function () {
+            Route::get('/',                     [ReportController::class, 'index'])->name('index');
+            Route::get('/stock',                [ReportController::class, 'stockOnHand'])->name('stock');
+            Route::get('/low-stock',            [ReportController::class, 'lowStock'])->name('low-stock');
+            Route::get('/expiry',               [ReportController::class, 'expiry'])->name('expiry');
+            Route::post('/expiry/batches/{batch}/flag-promotion', [ReportController::class, 'flagBatchForPromotion'])->name('expiry.flag-promotion');
+            Route::get('/valuation',            [ReportController::class, 'valuation'])->name('valuation');
+            Route::get('/purchases',            [ReportController::class, 'purchases'])->name('purchases');
+            Route::get('/sales',                [ReportController::class, 'sales'])->name('sales');
+            Route::get('/movements',            [ReportController::class, 'movements'])->name('movements');
+
+            // §5.16 — 16 report types
+            Route::get('/daily-sales',          [ReportController::class, 'dailySales'])->name('daily-sales');
+            Route::get('/sales-trend',          [ReportController::class, 'salesTrend'])->name('sales-trend');
+            Route::get('/product-performance',  [ReportController::class, 'productPerformance'])->name('product-performance');
+            Route::get('/dead-stock',           [ReportController::class, 'deadStock'])->name('dead-stock');
+            Route::get('/inventory-valuation',  [ReportController::class, 'inventoryValuation'])->name('inventory-valuation');
+            Route::get('/purchase-summary',     [ReportController::class, 'purchaseSummary'])->name('purchase-summary');
+            Route::get('/grn-vs-ordered',       [ReportController::class, 'grnVsOrdered'])->name('grn-vs-ordered');
+            Route::get('/expense-breakdown',    [ReportController::class, 'expenseBreakdown'])->name('expense-breakdown');
+            Route::get('/employee-performance', [ReportController::class, 'employeePerformance'])->name('employee-performance');
+            Route::get('/audit-variance',       [ReportController::class, 'auditVariance'])->name('audit-variance');
+            Route::get('/customer-history',     [ReportController::class, 'customerHistory'])->name('customer-history');
+            Route::get('/supplier-aging',       [ReportController::class, 'supplierAging'])->name('supplier-aging');
+
+            // Scheduled delivery (plan feature)
+            Route::get('/schedules',  [ReportController::class, 'schedules'])->name('schedules.index');
+            Route::post('/schedules', [ReportController::class, 'storeSchedule'])->name('schedules.store');
+        });
 
         // §5.12 Financial Management (Hard Rule §6: permission middleware on every route)
         Route::middleware('permission:reports.financial')->group(function () {
@@ -361,11 +394,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/balance-sheet',    [FinancialController::class, 'balanceSheet'])->name('financial.balance-sheet');
             Route::get('/export/{report}/pdf',   [FinancialController::class, 'exportPdf'])->name('financial.export.pdf');
             Route::get('/export/{report}/excel', [FinancialController::class, 'exportExcel'])->name('financial.export.excel');
+            // §5.16 P&L and cash-flow aliases
+            Route::get('/pnl',       [ReportController::class, 'pnl'])->name('pnl');
+            Route::get('/cash-flow-report', [ReportController::class, 'cashFlow'])->name('cash-flow-report');
         });
 
         // VAT report uses a separate, more restricted permission
         Route::middleware('permission:reports.vat')->group(function () {
-            Route::get('/vat', [FinancialController::class, 'vatReport'])->name('financial.vat');
+            Route::get('/vat',         [FinancialController::class, 'vatReport'])->name('financial.vat');
+            Route::get('/vat-report',  [ReportController::class, 'vat'])->name('vat-report');
         });
     });
 
@@ -375,4 +412,46 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Users (Super Admin only) ──────────────────────────────
     Route::middleware('role:Super Admin')->resource('users', UserController::class);
+
+    // ── Barcodes & Scanners (§5.15) ───────────────────────────
+    Route::prefix('products/{product}')->name('products.')->group(function () {
+        Route::get('/barcode',         [BarcodeController::class, 'show'])->name('barcode')->middleware('permission:inventory.view');
+        Route::post('/barcode/assign', [BarcodeController::class, 'assign'])->name('barcode.assign')->middleware('permission:inventory.adjust');
+    });
+    Route::post('/barcodes/bulk-print', [BarcodeController::class, 'bulkPrint'])->name('barcodes.bulk-print')->middleware('permission:inventory.view');
+    Route::get('/pos/scan/{barcode}',   [BarcodeController::class, 'posScan'])->name('pos.scan')->middleware('permission:sales.create');
+    Route::get('/grn/scan/{barcode}',   [BarcodeController::class, 'grnScan'])->name('grn.scan')->middleware('permission:purchases.receive');
+
+    // ── Employees & Attendance (§5.18) ────────────────────────
+    Route::middleware('permission:employees.view')->group(function () {
+        Route::resource('employees', EmployeeController::class)->except(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::get('/employees/{employee}/performance', [EmployeeController::class, 'performance'])->name('employees.performance');
+        Route::get('/employees/{employee}/schedule',   [EmployeeController::class, 'schedule'])->name('employees.schedule');
+        Route::get('/attendance/today',                [AttendanceController::class, 'today'])->name('attendance.today');
+        Route::get('/attendance/{employee}/monthly',   [AttendanceController::class, 'monthlyReport'])->name('attendance.monthly');
+        Route::get('/shifts',                          [ShiftController::class, 'index'])->name('shifts.index');
+    });
+
+    Route::middleware('permission:employees.create')->group(function () {
+        Route::get('/employees/create',  [EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('/employees',        [EmployeeController::class, 'store'])->name('employees.store');
+        Route::post('/shifts',           [ShiftController::class, 'store'])->name('shifts.store');
+        Route::post('/employees/{employee}/link-user', [EmployeeController::class, 'linkUser'])->name('employees.link-user');
+        Route::post('/employees/{employee}/shifts',    [ShiftController::class, 'assignToEmployee'])->name('employees.shifts.assign');
+    });
+
+    Route::middleware('permission:employees.edit')->group(function () {
+        Route::get('/employees/{employee}/edit',  [EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('/employees/{employee}',       [EmployeeController::class, 'update'])->name('employees.update');
+        Route::put('/shifts/{shift}',             [ShiftController::class, 'update'])->name('shifts.update');
+    });
+
+    Route::middleware('permission:employees.delete')->group(function () {
+        Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    });
+
+    Route::middleware('permission:attendance.manage')->group(function () {
+        Route::post('/attendance/{employee}/clock-in',  [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+        Route::post('/attendance/{employee}/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+    });
 });

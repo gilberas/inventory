@@ -66,6 +66,18 @@ class CustomerTest extends TestCase
             'created_at'    => now(),
             'updated_at'    => now(),
         ]);
+
+        // Open an active POS session for the user so sale tests can proceed
+        DB::table('pos_sessions')->insert([
+            'tenant_id'    => $this->tenant->id,
+            'cashier_id'   => $this->user->id,
+            'branch_id'    => null,
+            'opening_cash' => 50000,
+            'status'       => 'active',
+            'opened_at'    => now(),
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
     }
 
     private function seedStock(int $qty): void
