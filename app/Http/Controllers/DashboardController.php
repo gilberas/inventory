@@ -2,38 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Customer, InventoryTransaction, Product, PurchaseOrder, SalesOrder, Supplier, Warehouse};
+use App\Services\DashboardMetricsService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function __construct(private DashboardMetricsService $metrics) {}
+
+    public function index(Request $request): View|RedirectResponse
     {
-        $stats = [
-            'total_products'   => Product::active()->count(),
-            'total_warehouses' => Warehouse::active()->count(),
-            'total_suppliers'  => Supplier::active()->count(),
-            'total_customers'  => Customer::active()->count(),
-            'low_stock_count'  => Product::active()->get()->filter->isLowStock()->count(),
-            'pending_pos' => PurchaseOrder::where('status', 'APPROVED')->count(),
-'pending_sos' => SalesOrder::where('status', 'CONFIRMED')->count(),
-        ];
+        $user     = $request->user();
+        $tenantId = (int) $user->tenant_id;
 
-        $recentTransactions = InventoryTransaction::with(['user', 'warehouse'])
-            ->latest()->limit(10)->get();
+        // Guard: account has no tenant — created before migration ran or corrupt state.
+        // Force logout so they can re-register with the new flow.
+        if ($tenantId === 0) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Your account is not linked to a business. Please register again.']);
+        }
 
-        $recentSalesOrders = SalesOrder::with(['customer'])
-            ->latest()->limit(5)->get();
+        // Branch selector: owners see all warehouses + consolidated toggle;
+        // branch managers are locked to their assigned warehouse.
+        $canSelectBranch = $user->hasRole(['super_admin', 'business_owner']);
 
-        $lowStockProducts = Product::active()->with(['unit', 'stockBalances'])
-            ->get()->filter->isLowStock()->take(10)->values();
+        if ($canSelectBranch) {
+            $warehouseId = $request->integer('branch_id') ?: null;
+            $warehouses  = DB::table('warehouses')
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->get(['id', 'name', 'code']);
+        } else {
+            $warehouseId = $user->branch_id ? (int) $user->branch_id : null;
+            $warehouses  = collect();
+        }
 
-        $monthlyStats = SalesOrder::selectRaw('MONTH(created_at) as month, SUM(total_amount) as total')
-            ->whereYear('created_at', date('Y'))
-            ->groupBy('month')->orderBy('month')->get();
+        $branchKey = $warehouseId ?? 'all';
+        $cacheKey  = "tenant:{$tenantId}:dashboard:{$branchKey}:" . today()->format('Y-m-d');
 
-        return view('dashboard.index', compact(
-            'stats', 'recentTransactions', 'recentSalesOrders', 'lowStockProducts', 'monthlyStats'
-        ));
+        $computed = Cache::remember($cacheKey, 300, function () use ($tenantId, $warehouseId) {
+            return [
+                'inventory' => $this->metrics->inventoryMetrics($tenantId, $warehouseId),
+                'sales'     => $this->metrics->salesMetrics($tenantId, $warehouseId),
+                'purchases' => $this->metrics->purchaseMetrics($tenantId, $warehouseId),
+                'financial' => $this->metrics->financialMetrics($tenantId, $warehouseId),
+            ];
+        });
+
+        return view('dashboard.index', [
+            'inventory'          => $computed['inventory'],
+            'sales'              => $computed['sales'],
+            'purchases'          => $computed['purchases'],
+            'financial'          => $computed['financial'],
+            'warehouses'         => $warehouses,
+            'selected_warehouse' => $warehouseId,
+            'can_select_branch'  => $canSelectBranch,
+            'notification_count' => 0, // §5.1 will wire in-app notifications
+        ]);
     }
 }

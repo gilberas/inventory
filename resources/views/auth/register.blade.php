@@ -52,6 +52,19 @@
     <form method="POST" action="{{ route('register.post') }}">
         @csrf
 
+        {{-- Business name --}}
+        <div class="form-group">
+            <label for="business_name">Business name</label>
+            <div class="input-wrap">
+                <i class="fas fa-building"></i>
+                <input type="text" id="business_name" name="business_name" value="{{ old('business_name') }}"
+                       placeholder="Acme Traders Ltd" autocomplete="organization">
+            </div>
+            @error('business_name')
+                <div class="error-msg"><i class="fas fa-circle-exclamation"></i> {{ $message }}</div>
+            @enderror
+        </div>
+
         {{-- Name --}}
         <div class="form-group">
             <label for="name">Full name</label>
