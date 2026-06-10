@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Events\ExpenseApproved;
 use App\Events\GRNConfirmed;
 use App\Events\InventoryAdjusted;
+use App\Events\LowStockDetected;
 use App\Events\SaleCompleted;
 use App\Listeners\AwardLoyaltyPoints;
+use App\Listeners\HandleLowStockDetected;
 use App\Listeners\InvalidateDashboardCache;
 use App\Listeners\InvalidateFinancialCache;
 use Illuminate\Support\Facades\Event;
@@ -32,5 +34,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Loyalty points — synchronous listener (Hard Rule §3 is Mail/Notification only)
         Event::listen(SaleCompleted::class, [AwardLoyaltyPoints::class, 'handle']);
+
+        // Low stock alert → notify storekeepers + business owner (BO-2)
+        Event::listen(LowStockDetected::class, [HandleLowStockDetected::class, 'handle']);
     }
 }

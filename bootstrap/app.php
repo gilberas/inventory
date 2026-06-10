@@ -27,4 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->command('reports:send-monthly-pnl')->monthlyOn(1, '07:00');
+        $schedule->command('reports:send-scheduled')->dailyAt('06:00');
+    })
+    ->create();
