@@ -48,12 +48,15 @@ class DashboardController extends Controller
         $branchKey = $warehouseId ?? 'all';
         $cacheKey  = "tenant:{$tenantId}:dashboard:{$branchKey}:" . today()->format('Y-m-d');
 
-        $computed = Cache::remember($cacheKey, 300, function () use ($tenantId, $warehouseId) {
+        $computed = Cache::remember($cacheKey, 300, function () use ($tenantId, $warehouseId, $canSelectBranch) {
             return [
-                'inventory' => $this->metrics->inventoryMetrics($tenantId, $warehouseId),
-                'sales'     => $this->metrics->salesMetrics($tenantId, $warehouseId),
-                'purchases' => $this->metrics->purchaseMetrics($tenantId, $warehouseId),
-                'financial' => $this->metrics->financialMetrics($tenantId, $warehouseId),
+                'inventory'        => $this->metrics->inventoryMetrics($tenantId, $warehouseId),
+                'sales'            => $this->metrics->salesMetrics($tenantId, $warehouseId),
+                'purchases'        => $this->metrics->purchaseMetrics($tenantId, $warehouseId),
+                'financial'        => $this->metrics->financialMetrics($tenantId, $warehouseId),
+                'branches_summary' => ($canSelectBranch && $warehouseId === null)
+                    ? $this->metrics->branchesSummary($tenantId)
+                    : [],
             ];
         });
 
@@ -62,10 +65,11 @@ class DashboardController extends Controller
             'sales'              => $computed['sales'],
             'purchases'          => $computed['purchases'],
             'financial'          => $computed['financial'],
+            'branches_summary'   => $computed['branches_summary'],
             'warehouses'         => $warehouses,
             'selected_warehouse' => $warehouseId,
             'can_select_branch'  => $canSelectBranch,
-            'notification_count' => 0, // §5.1 will wire in-app notifications
+            'notification_count' => auth()->user()->unreadNotifications()->count(),
         ]);
     }
 }
