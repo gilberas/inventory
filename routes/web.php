@@ -16,6 +16,12 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\GoodsReceivedNoteController;
+use App\Http\Controllers\SupplierInvoiceController;
+use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\POSController;
+use App\Http\Controllers\SaleController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -29,6 +35,9 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// ── PAYMENT CALLBACKS (no auth — called by external providers) ───────────────
+Route::post('/mpesa/callback', [POSController::class, 'mpesaCallback'])->name('mpesa.callback');
 
 // ── ALL PROTECTED ROUTES ──────────────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
@@ -167,15 +176,96 @@ Route::middleware(['auth'])->group(function () {
     Route::post('transfers/{transfer}/dispatch', [StockTransferController::class, 'dispatch'])->name('transfers.dispatch');
     Route::post('transfers/{transfer}/receive',  [StockTransferController::class, 'receive'])->name('transfers.receive');
 
-    // ── Purchasing ────────────────────────────────────────────
-    Route::resource('suppliers', SupplierController::class);
-    Route::resource('purchases', PurchaseOrderController::class);
-    Route::post('purchases/{purchase}/submit',  [PurchaseOrderController::class, 'submit'])->name('purchases.submit');
-    Route::post('purchases/{purchase}/approve', [PurchaseOrderController::class, 'approve'])->name('purchases.approve');
-    Route::post('purchases/{purchase}/receive', [PurchaseOrderController::class, 'receive'])->name('purchases.receive');
+    // ── Suppliers ─────────────────────────────────────────────
+    Route::prefix('suppliers')->name('suppliers.')->group(function () {
+        Route::get('/',                          [SupplierController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::get('/create',                    [SupplierController::class, 'create'])->name('create')->middleware('permission:purchases.create');
+        Route::post('/',                         [SupplierController::class, 'store'])->name('store')->middleware('permission:purchases.create');
+        // Sub-resource routes registered BEFORE /{supplier} to avoid conflict
+        Route::get('/{supplier}/history',        [SupplierController::class, 'history'])->name('history')->middleware('permission:purchases.view');
+        Route::get('/{supplier}/aging',          [SupplierController::class, 'aging'])->name('aging')->middleware('permission:purchases.view');
+        Route::get('/{supplier}',                [SupplierController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+        Route::get('/{supplier}/edit',           [SupplierController::class, 'edit'])->name('edit')->middleware('permission:purchases.create');
+        Route::put('/{supplier}',                [SupplierController::class, 'update'])->name('update')->middleware('permission:purchases.create');
+        Route::patch('/{supplier}',              [SupplierController::class, 'update'])->middleware('permission:purchases.create');
+        Route::delete('/{supplier}',             [SupplierController::class, 'destroy'])->name('destroy')->middleware('permission:purchases.manage');
+    });
 
-    // ── Sales ─────────────────────────────────────────────────
-    Route::resource('customers', CustomerController::class);
+    // ── Purchase Orders ───────────────────────────────────────
+    Route::prefix('purchases')->name('purchases.')->group(function () {
+        Route::get('/',                      [PurchaseOrderController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::get('/create',                [PurchaseOrderController::class, 'create'])->name('create')->middleware('permission:purchases.create');
+        Route::post('/',                     [PurchaseOrderController::class, 'store'])->name('store')->middleware('permission:purchases.create');
+        Route::get('/{purchase}',            [PurchaseOrderController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+        Route::get('/{purchase}/edit',       [PurchaseOrderController::class, 'edit'])->name('edit')->middleware('permission:purchases.create');
+        Route::put('/{purchase}',            [PurchaseOrderController::class, 'update'])->name('update')->middleware('permission:purchases.create');
+        Route::patch('/{purchase}',          [PurchaseOrderController::class, 'update'])->middleware('permission:purchases.create');
+        Route::delete('/{purchase}',         [PurchaseOrderController::class, 'destroy'])->name('destroy')->middleware('permission:purchases.manage');
+        Route::post('/{purchase}/submit',    [PurchaseOrderController::class, 'submit'])->name('submit')->middleware('permission:purchases.create');
+        Route::post('/{purchase}/approve',   [PurchaseOrderController::class, 'approve'])->name('approve')->middleware('permission:purchases.manage');
+        Route::post('/{purchase}/receive',   [PurchaseOrderController::class, 'receive'])->name('receive')->middleware('permission:purchases.receive');
+        Route::get('/{purchase}/pdf',        [PurchaseOrderController::class, 'pdf'])->name('pdf')->middleware('permission:purchases.view');
+    });
+
+    // ── Purchase Requisitions ─────────────────────────────────
+    Route::prefix('requisitions')->name('requisitions.')->group(function () {
+        Route::get('/',                      [RequisitionController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::get('/create',                [RequisitionController::class, 'create'])->name('create')->middleware('permission:purchases.view');
+        Route::post('/',                     [RequisitionController::class, 'store'])->name('store')->middleware('permission:purchases.view');
+        Route::get('/{requisition}',         [RequisitionController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+        Route::post('/{requisition}/submit', [RequisitionController::class, 'submit'])->name('submit')->middleware('permission:purchases.view');
+        Route::post('/{requisition}/approve',[RequisitionController::class, 'approve'])->name('approve')->middleware('permission:purchases.manage');
+        Route::post('/{requisition}/reject', [RequisitionController::class, 'reject'])->name('reject')->middleware('permission:purchases.manage');
+        Route::post('/{requisition}/revise', [RequisitionController::class, 'revise'])->name('revise')->middleware('permission:purchases.manage');
+    });
+
+    // ── Goods Received Notes ──────────────────────────────────
+    Route::prefix('grn')->name('grn.')->group(function () {
+        Route::get('/',              [GoodsReceivedNoteController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::get('/create',        [GoodsReceivedNoteController::class, 'create'])->name('create')->middleware('permission:purchases.receive');
+        Route::post('/',             [GoodsReceivedNoteController::class, 'store'])->name('store')->middleware('permission:purchases.receive');
+        Route::get('/{grn}',         [GoodsReceivedNoteController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+        Route::post('/{grn}/confirm',[GoodsReceivedNoteController::class, 'confirm'])->name('confirm')->middleware('permission:purchases.receive');
+    });
+
+    // ── Supplier Invoices ─────────────────────────────────────
+    Route::prefix('invoices')->name('invoices.')->group(function () {
+        Route::get('/',              [SupplierInvoiceController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::get('/create',        [SupplierInvoiceController::class, 'create'])->name('create')->middleware('permission:purchases.create');
+        Route::post('/',             [SupplierInvoiceController::class, 'store'])->name('store')->middleware('permission:purchases.create');
+        Route::get('/{invoice}',     [SupplierInvoiceController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+        Route::post('/{invoice}/match',[SupplierInvoiceController::class, 'match'])->name('match')->middleware('permission:purchases.manage');
+        Route::post('/{invoice}/pay',[SupplierInvoiceController::class, 'pay'])->name('pay')->middleware('permission:purchases.manage');
+    });
+
+    // ── Purchase Returns ──────────────────────────────────────
+    Route::prefix('purchase-returns')->name('purchase-returns.')->group(function () {
+        Route::get('/',                      [PurchaseReturnController::class, 'index'])->name('index')->middleware('permission:purchases.view');
+        Route::post('/',                     [PurchaseReturnController::class, 'store'])->name('store')->middleware('permission:purchases.manage');
+        Route::get('/{purchaseReturn}',      [PurchaseReturnController::class, 'show'])->name('show')->middleware('permission:purchases.view');
+    });
+
+    // ── Customers ─────────────────────────────────────────────
+    Route::prefix('customers')->name('customers.')->group(function () {
+        // Static routes BEFORE /{customer} parametric route (Hard Rule §6)
+        Route::get('/',            [CustomerController::class, 'index'])->name('index')->middleware('permission:sales.view');
+        Route::get('/segments',    [CustomerController::class, 'segments'])->name('segments')->middleware('permission:sales.view');
+        Route::post('/',           [CustomerController::class, 'store'])->name('store')->middleware('permission:sales.create');
+
+        // Sub-resource routes registered BEFORE /{customer} catch-all
+        Route::get('/{customer}/history',              [CustomerController::class, 'history'])->name('history')->middleware('permission:sales.view');
+        Route::get('/{customer}/balance',              [CustomerController::class, 'balance'])->name('balance')->middleware('permission:sales.view');
+        Route::post('/{customer}/tags',                [CustomerController::class, 'assignTags'])->name('tags.assign')->middleware('permission:sales.create');
+        Route::delete('/{customer}/tags/{tag}',        [CustomerController::class, 'removeTag'])->name('tags.remove')->middleware('permission:sales.create');
+
+        // CRUD
+        Route::get('/{customer}',    [CustomerController::class, 'show'])->name('show')->middleware('permission:sales.view');
+        Route::put('/{customer}',    [CustomerController::class, 'update'])->name('update')->middleware('permission:sales.create');
+        Route::patch('/{customer}',  [CustomerController::class, 'update'])->middleware('permission:sales.create');
+        Route::delete('/{customer}', [CustomerController::class, 'destroy'])->name('destroy')->middleware('permission:sales.manage');
+    });
+
+    // ── Sales (B2B orders) ────────────────────────────────────
     Route::resource('sales',     SalesOrderController::class);
     Route::post('sales/{sale}/confirm',  [SalesOrderController::class, 'confirm'])->name('sales.confirm');
     Route::post('sales/{sale}/dispatch', [SalesOrderController::class, 'dispatch'])->name('sales.dispatch');
@@ -183,6 +273,32 @@ Route::middleware(['auth'])->group(function () {
     Route::post('sales/{sale}/payment',  [SalesOrderController::class, 'recordPayment'])->name('sales.payment');
     Route::post('sales/{sale}/cancel',   [SalesOrderController::class, 'cancel'])->name('sales.cancel');
     Route::post('transfers/{transfer}/cancel', [StockTransferController::class, 'cancel'])->name('transfers.cancel');
+
+    // ── POS ───────────────────────────────────────────────────
+    Route::prefix('pos')->name('pos.')->group(function () {
+        // Session management (terminal limit check on open only — Hard Rule §7)
+        Route::get('/session',        [POSController::class, 'session'])->name('session')->middleware('permission:sales.create');
+        Route::post('/session/open',  [POSController::class, 'openSession'])->name('session.open')->middleware(['permission:sales.create', 'check.pos.terminal']);
+        Route::post('/session/close', [POSController::class, 'closeSession'])->name('session.close')->middleware('permission:sales.create');
+
+        // Product search
+        Route::get('/products/search', [POSController::class, 'searchProducts'])->name('products.search')->middleware('permission:sales.view');
+
+        // Sale creation
+        Route::post('/sales',         [POSController::class, 'store'])->name('sales.store')->middleware('permission:sales.create');
+
+        // Sale management (list/detail/void/receipts/returns)
+        Route::get('/sales',                          [SaleController::class, 'index'])->name('sales.index')->middleware('permission:sales.view');
+        Route::get('/sales/{sale}',                   [SaleController::class, 'show'])->name('sales.show')->middleware('permission:sales.view');
+        Route::post('/sales/{sale}/void',             [SaleController::class, 'void'])->name('sales.void')->middleware('permission:sales.manage');
+        Route::get('/sales/{sale}/receipt/thermal',   [SaleController::class, 'receiptThermal'])->name('sales.receipt.thermal')->middleware('permission:sales.view');
+        Route::get('/sales/{sale}/receipt/a4',        [SaleController::class, 'receiptA4'])->name('sales.receipt.a4')->middleware('permission:sales.view');
+        Route::get('/sales/{sale}/receipt/email',     [SaleController::class, 'receiptEmail'])->name('sales.receipt.email')->middleware('permission:sales.view');
+        Route::post('/sales/{sale}/return',           [SaleController::class, 'storeReturn'])->name('sales.return')->middleware('permission:sales.create');
+
+        // Loyalty points redemption
+        Route::post('/loyalty/redeem', [CustomerController::class, 'redeemLoyalty'])->name('loyalty.redeem')->middleware('permission:sales.create');
+    });
 
     // ── Reports ───────────────────────────────────────────────
     Route::prefix('reports')->name('reports.')->group(function () {
