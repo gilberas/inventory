@@ -147,11 +147,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/stock-on-hand', [InventoryController::class, 'stockOnHand'])->name('stock-on-hand');
 
         // Stock adjustment
-        Route::get('/adjust',      [InventoryController::class, 'adjustment'])->name('adjust');
+        Route::get('/adjust',      [InventoryController::class, 'adjustment'])->name('adjust')->middleware('permission:inventory.adjust');
         Route::post('/adjust',     [InventoryController::class, 'storeAdjustment'])->name('adjust.store')->middleware('permission:inventory.adjust');
 
         // Alias: /inventory/adjustment (used in some blade links)
-        Route::get('/adjustment',  [InventoryController::class, 'adjustment'])->name('adjustment');
+        Route::get('/adjustment',  [InventoryController::class, 'adjustment'])->name('adjustment')->middleware('permission:inventory.adjust');
         Route::post('/adjustment', [InventoryController::class, 'storeAdjustment'])->name('adjustment.store')->middleware('permission:inventory.adjust');
 
         // Transaction log
