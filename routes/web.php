@@ -14,6 +14,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\RequisitionController;
@@ -39,6 +40,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/login',    [AuthController::class, 'login'])->name('login.post');
     Route::get('/register',  [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
+    // Forgot password (MVP: generates temp password displayed on screen)
+    Route::get('/forgot-password',  [ForgotPasswordController::class, 'showForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'send'])->name('password.email');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -53,6 +58,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('require.2fa')
         ->name('dashboard');
+
+    // Dismiss the "must change password" banner (sets a session flag, not permanent)
+    Route::post('/banner/dismiss-password-notice', function () {
+        session(['pw_notice_dismissed' => true]);
+        return back();
+    })->name('banner.dismiss.password');
 
     // ── Products (individual routes for per-action RBAC + plan limit) ─────────
     Route::prefix('products')->name('products.')->group(function () {
@@ -407,8 +418,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ── Profile ───────────────────────────────────────────────
-    Route::get('/profile', [UserController::class, 'profile'])->name('profile');
-    Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
     // ── Users (Super Admin only) ──────────────────────────────
     Route::middleware('role:Super Admin')->resource('users', UserController::class);
