@@ -86,7 +86,7 @@
         @endcanany
 
         {{-- ── TRANSFERS (owner, branch_manager, storekeeper) ──────── --}}
-        @canany(['inventory.transfer', 'inventory.transfer_dispatch'])
+        @canany(['transfers.view', 'transfers.create'])
         <a href="{{ route('transfers.index') }}"
            class="nav-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
             <i class="fas fa-truck-moving"></i> Transfers
@@ -94,7 +94,7 @@
         @endcanany
 
         {{-- ── PURCHASING (owner, branch_manager, storekeeper [receive only]) --}}
-        @canany(['purchase_orders.manage', 'purchase_orders.receive'])
+        @canany(['purchases.view', 'purchases.manage', 'purchases.receive'])
         <div class="nav-section-label">Purchasing</div>
 
         @canany(['suppliers.manage', 'suppliers.view'])
@@ -117,7 +117,7 @@
         @endif
 
         @if(Route::has('requisitions.index'))
-        @can('purchase_orders.manage')
+        @can('purchases.manage')
         <a href="{{ route('requisitions.index') }}"
            class="nav-item {{ request()->routeIs('requisitions.*') ? 'active' : '' }}">
             <i class="fas fa-clipboard-list"></i> Requisitions
@@ -127,13 +127,15 @@
         @endcanany
 
         {{-- ── SALES (owner, branch_manager, cashier) ──────────────── --}}
-        @can('sales.process')
+        @canany(['sales.process', 'sales.create'])
         <div class="nav-section-label">Sales</div>
 
+        @canany(['sales.create', 'sales.process'])
         <a href="{{ route('pos.terminal') }}"
            class="nav-item {{ request()->routeIs('pos.*') ? 'active' : '' }}">
             <i class="fas fa-cash-register"></i> Point of Sale
         </a>
+        @endcanany
 
         @canany(['customers.manage', 'customers.manage_own'])
         <a href="{{ route('customers.index') }}"
@@ -142,6 +144,7 @@
         </a>
         @endcanany
 
+        @can('sales.view')
         @if(Route::has('sales.index'))
         <a href="{{ route('sales.index') }}"
            class="nav-item {{ request()->routeIs('sales.*') ? 'active' : '' }}">
@@ -149,6 +152,7 @@
         </a>
         @endif
         @endcan
+        @endcanany
 
         {{-- ── EXPENSES (owner, branch_manager, accountant) ──────────── --}}
         @canany(['expenses.manage', 'expenses.view'])
@@ -201,7 +205,7 @@
         @endcanany
 
         {{-- ── EMPLOYEES (owner, branch_manager) ─────────────────── --}}
-        @canany(['employees.manage_all', 'employees.manage_branch'])
+        @canany(['employees.view', 'employees.manage_all', 'employees.manage_branch'])
         @if(Route::has('employees.index'))
         <div class="nav-section-label">HR</div>
         <a href="{{ route('employees.index') }}"

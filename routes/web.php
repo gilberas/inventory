@@ -57,81 +57,81 @@ Route::middleware(['auth'])->group(function () {
     // ── Products (individual routes for per-action RBAC + plan limit) ─────────
     Route::prefix('products')->name('products.')->group(function () {
         // view
-        Route::get('/',                    [ProductController::class, 'index'])->name('index')->middleware('permission:view products');
-        Route::get('/search',              [ProductController::class, 'search'])->name('search')->middleware('permission:view products');
-        Route::get('/export',              [ProductController::class, 'export'])->name('export')->middleware('permission:view products');
-        Route::get('/import/template',     [ProductController::class, 'importTemplate'])->name('import.template')->middleware('permission:view products');
-        Route::get('/create',              [ProductController::class, 'create'])->name('create')->middleware('permission:create products');
+        Route::get('/',                    [ProductController::class, 'index'])->name('index')->middleware('permission:products.view');
+        Route::get('/search',              [ProductController::class, 'search'])->name('search')->middleware('permission:products.view');
+        Route::get('/export',              [ProductController::class, 'export'])->name('export')->middleware('permission:products.view');
+        Route::get('/import/template',     [ProductController::class, 'importTemplate'])->name('import.template')->middleware('permission:products.view');
+        Route::get('/create',              [ProductController::class, 'create'])->name('create')->middleware('permission:products.manage');
         // create + plan limit (Hard Rule §7)
-        Route::post('/',                   [ProductController::class, 'store'])->name('store')->middleware(['permission:create products', 'check.product.limit']);
-        Route::post('/import',             [ProductController::class, 'import'])->name('import')->middleware(['permission:create products', 'check.product.limit']);
+        Route::post('/',                   [ProductController::class, 'store'])->name('store')->middleware(['permission:products.manage', 'check.product.limit']);
+        Route::post('/import',             [ProductController::class, 'import'])->name('import')->middleware(['permission:products.manage', 'check.product.limit']);
         // show (after static prefixes to avoid swallowing /create, /search, etc.)
-        Route::get('/{product}',           [ProductController::class, 'show'])->name('show')->middleware('permission:view products');
+        Route::get('/{product}',           [ProductController::class, 'show'])->name('show')->middleware('permission:products.view');
         // edit
-        Route::get('/{product}/edit',      [ProductController::class, 'edit'])->name('edit')->middleware('permission:edit products');
-        Route::put('/{product}',           [ProductController::class, 'update'])->name('update')->middleware('permission:edit products');
-        Route::patch('/{product}',         [ProductController::class, 'update'])->middleware('permission:edit products');
-        Route::post('/{product}/images',   [ProductController::class, 'uploadImage'])->name('images.store')->middleware('permission:edit products');
-        Route::delete('/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('images.destroy')->middleware('permission:edit products');
+        Route::get('/{product}/edit',      [ProductController::class, 'edit'])->name('edit')->middleware('permission:products.manage');
+        Route::put('/{product}',           [ProductController::class, 'update'])->name('update')->middleware('permission:products.manage');
+        Route::patch('/{product}',         [ProductController::class, 'update'])->middleware('permission:products.manage');
+        Route::post('/{product}/images',   [ProductController::class, 'uploadImage'])->name('images.store')->middleware('permission:products.manage');
+        Route::delete('/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('images.destroy')->middleware('permission:products.manage');
         // delete
-        Route::delete('/{product}',        [ProductController::class, 'destroy'])->name('destroy')->middleware('permission:delete products');
+        Route::delete('/{product}',        [ProductController::class, 'destroy'])->name('destroy')->middleware('permission:products.manage');
     });
 
     // ── Categories (per-action RBAC + image upload) ───────────
     Route::prefix('categories')->name('categories.')->group(function () {
-        Route::get('/',                         [CategoryController::class, 'index'])->name('index')->middleware('permission:view categories');
-        Route::get('/create',                   [CategoryController::class, 'create'])->name('create')->middleware('permission:create categories');
-        Route::post('/',                        [CategoryController::class, 'store'])->name('store')->middleware('permission:create categories');
-        Route::get('/{category}',               [CategoryController::class, 'show'])->name('show')->middleware('permission:view categories');
-        Route::get('/{category}/edit',          [CategoryController::class, 'edit'])->name('edit')->middleware('permission:edit categories');
-        Route::put('/{category}',               [CategoryController::class, 'update'])->name('update')->middleware('permission:edit categories');
-        Route::patch('/{category}',             [CategoryController::class, 'update'])->middleware('permission:edit categories');
-        Route::delete('/{category}',            [CategoryController::class, 'destroy'])->name('destroy')->middleware('permission:delete categories');
-        Route::post('/{category}/image',        [CategoryController::class, 'uploadImage'])->name('image')->middleware('permission:edit categories');
+        Route::get('/',                         [CategoryController::class, 'index'])->name('index')->middleware('permission:products.manage');
+        Route::get('/create',                   [CategoryController::class, 'create'])->name('create')->middleware('permission:products.manage');
+        Route::post('/',                        [CategoryController::class, 'store'])->name('store')->middleware('permission:products.manage');
+        Route::get('/{category}',               [CategoryController::class, 'show'])->name('show')->middleware('permission:products.manage');
+        Route::get('/{category}/edit',          [CategoryController::class, 'edit'])->name('edit')->middleware('permission:products.manage');
+        Route::put('/{category}',               [CategoryController::class, 'update'])->name('update')->middleware('permission:products.manage');
+        Route::patch('/{category}',             [CategoryController::class, 'update'])->middleware('permission:products.manage');
+        Route::delete('/{category}',            [CategoryController::class, 'destroy'])->name('destroy')->middleware('permission:products.manage');
+        Route::post('/{category}/image',        [CategoryController::class, 'uploadImage'])->name('image')->middleware('permission:products.manage');
     });
 
     // ── Brands (per-action RBAC) ──────────────────────────────
     Route::prefix('brands')->name('brands.')->group(function () {
-        Route::get('/',                         [BrandController::class, 'index'])->name('index')->middleware('permission:view categories');
-        Route::get('/create',                   [BrandController::class, 'create'])->name('create')->middleware('permission:create categories');
-        Route::post('/',                        [BrandController::class, 'store'])->name('store')->middleware('permission:create categories');
-        Route::get('/{brand}/edit',             [BrandController::class, 'edit'])->name('edit')->middleware('permission:edit categories');
-        Route::put('/{brand}',                  [BrandController::class, 'update'])->name('update')->middleware('permission:edit categories');
-        Route::patch('/{brand}',                [BrandController::class, 'update'])->middleware('permission:edit categories');
-        Route::delete('/{brand}',               [BrandController::class, 'destroy'])->name('destroy')->middleware('permission:delete categories');
+        Route::get('/',                         [BrandController::class, 'index'])->name('index')->middleware('permission:products.manage');
+        Route::get('/create',                   [BrandController::class, 'create'])->name('create')->middleware('permission:products.manage');
+        Route::post('/',                        [BrandController::class, 'store'])->name('store')->middleware('permission:products.manage');
+        Route::get('/{brand}/edit',             [BrandController::class, 'edit'])->name('edit')->middleware('permission:products.manage');
+        Route::put('/{brand}',                  [BrandController::class, 'update'])->name('update')->middleware('permission:products.manage');
+        Route::patch('/{brand}',                [BrandController::class, 'update'])->middleware('permission:products.manage');
+        Route::delete('/{brand}',               [BrandController::class, 'destroy'])->name('destroy')->middleware('permission:products.manage');
     });
 
     // ── Units ─────────────────────────────────────────────────
-    Route::resource('units', UnitController::class)->except(['show']);
+    Route::resource('units', UnitController::class)->except(['show'])->middleware('permission:products.manage');
 
     // ── Warehouses + transfers + reports (per-action RBAC — Hard Rule §6) ─────
     Route::prefix('warehouses')->name('warehouses.')->group(function () {
         // Intra-branch transfers: register BEFORE /{warehouse} to avoid conflict
-        Route::get('/transfers',                      [WarehouseController::class, 'indexTransfers'])->name('transfers.index')->middleware('permission:view warehouses');
-        Route::get('/transfers/create',               [WarehouseController::class, 'createTransfer'])->name('transfers.create')->middleware('permission:create warehouses');
-        Route::post('/transfers',                     [WarehouseController::class, 'storeTransfer'])->name('transfers.store')->middleware('permission:create warehouses');
-        Route::post('/transfers/{transfer}/approve',  [WarehouseController::class, 'approveTransfer'])->name('transfers.approve')->middleware('permission:edit warehouses');
-        Route::post('/transfers/{transfer}/dispatch', [WarehouseController::class, 'dispatchTransfer'])->name('transfers.dispatch')->middleware('permission:edit warehouses');
-        Route::post('/transfers/{transfer}/receive',  [WarehouseController::class, 'receiveTransfer'])->name('transfers.receive')->middleware('permission:edit warehouses');
+        Route::get('/transfers',                      [WarehouseController::class, 'indexTransfers'])->name('transfers.index')->middleware('permission:inventory.audit');
+        Route::get('/transfers/create',               [WarehouseController::class, 'createTransfer'])->name('transfers.create')->middleware('permission:inventory.adjust');
+        Route::post('/transfers',                     [WarehouseController::class, 'storeTransfer'])->name('transfers.store')->middleware('permission:inventory.adjust');
+        Route::post('/transfers/{transfer}/approve',  [WarehouseController::class, 'approveTransfer'])->name('transfers.approve')->middleware('permission:inventory.adjust');
+        Route::post('/transfers/{transfer}/dispatch', [WarehouseController::class, 'dispatchTransfer'])->name('transfers.dispatch')->middleware('permission:inventory.adjust');
+        Route::post('/transfers/{transfer}/receive',  [WarehouseController::class, 'receiveTransfer'])->name('transfers.receive')->middleware('permission:inventory.adjust');
 
         // Warehouse CRUD
-        Route::get('/',                      [WarehouseController::class, 'index'])->name('index')->middleware('permission:view warehouses');
-        Route::get('/create',                [WarehouseController::class, 'create'])->name('create')->middleware('permission:create warehouses');
-        Route::post('/',                     [WarehouseController::class, 'store'])->name('store')->middleware(['permission:create warehouses', 'check.warehouse.limit']);
-        Route::get('/{warehouse}',           [WarehouseController::class, 'show'])->name('show')->middleware('permission:view warehouses');
-        Route::get('/{warehouse}/edit',      [WarehouseController::class, 'edit'])->name('edit')->middleware('permission:edit warehouses');
-        Route::put('/{warehouse}',           [WarehouseController::class, 'update'])->name('update')->middleware('permission:edit warehouses');
-        Route::patch('/{warehouse}',         [WarehouseController::class, 'update'])->middleware('permission:edit warehouses');
-        Route::delete('/{warehouse}',        [WarehouseController::class, 'destroy'])->name('destroy')->middleware('permission:delete warehouses');
+        Route::get('/',                      [WarehouseController::class, 'index'])->name('index')->middleware('permission:inventory.audit');
+        Route::get('/create',                [WarehouseController::class, 'create'])->name('create')->middleware('permission:inventory.adjust');
+        Route::post('/',                     [WarehouseController::class, 'store'])->name('store')->middleware(['permission:inventory.adjust', 'check.warehouse.limit']);
+        Route::get('/{warehouse}',           [WarehouseController::class, 'show'])->name('show')->middleware('permission:inventory.audit');
+        Route::get('/{warehouse}/edit',      [WarehouseController::class, 'edit'])->name('edit')->middleware('permission:inventory.adjust');
+        Route::put('/{warehouse}',           [WarehouseController::class, 'update'])->name('update')->middleware('permission:inventory.adjust');
+        Route::patch('/{warehouse}',         [WarehouseController::class, 'update'])->middleware('permission:inventory.adjust');
+        Route::delete('/{warehouse}',        [WarehouseController::class, 'destroy'])->name('destroy')->middleware('permission:inventory.adjust');
 
         // Stock reports per warehouse
-        Route::get('/{warehouse}/stock',      [WarehouseController::class, 'stockReport'])->name('stock')->middleware('permission:view warehouses');
-        Route::get('/{warehouse}/movements',  [WarehouseController::class, 'movementsReport'])->name('movements')->middleware('permission:view warehouses');
-        Route::get('/{warehouse}/valuation',  [WarehouseController::class, 'valuationReport'])->name('valuation')->middleware('permission:view warehouses');
+        Route::get('/{warehouse}/stock',      [WarehouseController::class, 'stockReport'])->name('stock')->middleware('permission:inventory.audit');
+        Route::get('/{warehouse}/movements',  [WarehouseController::class, 'movementsReport'])->name('movements')->middleware('permission:inventory.audit');
+        Route::get('/{warehouse}/valuation',  [WarehouseController::class, 'valuationReport'])->name('valuation')->middleware('permission:inventory.audit');
 
         // Bin locations
-        Route::post('/{warehouse}/locations',              [WarehouseController::class, 'storeLocation'])->name('locations.store')->middleware('permission:edit warehouses');
-        Route::delete('/{warehouse}/locations/{location}', [WarehouseController::class, 'destroyLocation'])->name('locations.destroy')->middleware('permission:delete warehouses');
+        Route::post('/{warehouse}/locations',              [WarehouseController::class, 'storeLocation'])->name('locations.store')->middleware('permission:inventory.adjust');
+        Route::delete('/{warehouse}/locations/{location}', [WarehouseController::class, 'destroyLocation'])->name('locations.destroy')->middleware('permission:inventory.adjust');
     });
 
     // ── Inventory ─────────────────────────────────────────────

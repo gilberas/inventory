@@ -14,44 +14,89 @@ class RolesAndPermissionsSeeder extends Seeder
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
-            ['name' => 'platform.manage',            'module' => 'platform'],
-            ['name' => 'subscriptions.manage',        'module' => 'subscriptions'],
-            ['name' => 'subscriptions.manage_own',    'module' => 'subscriptions'],
-            ['name' => 'users.manage_all',            'module' => 'users'],
-            ['name' => 'users.manage_branch',         'module' => 'users'],
-            ['name' => 'dashboard.view_all',          'module' => 'dashboard'],
-            ['name' => 'dashboard.view_branch',       'module' => 'dashboard'],
-            ['name' => 'dashboard.view_financial',    'module' => 'dashboard'],
-            ['name' => 'products.manage',             'module' => 'products'],
-            ['name' => 'products.view',               'module' => 'products'],
-            ['name' => 'sales.process',               'module' => 'sales'],
-            ['name' => 'purchase_orders.manage',      'module' => 'purchases'],
-            ['name' => 'purchase_orders.receive',     'module' => 'purchases'],
-            ['name' => 'inventory.adjust',            'module' => 'inventory'],
-            ['name' => 'inventory.transfer',          'module' => 'inventory'],
-            ['name' => 'inventory.transfer_dispatch', 'module' => 'inventory'],
-            ['name' => 'inventory.audit',             'module' => 'inventory'],
-            ['name' => 'inventory.audit_count',       'module' => 'inventory'],
-            ['name' => 'expenses.manage',             'module' => 'expenses'],
-            ['name' => 'expenses.view',               'module' => 'expenses'],
-            ['name' => 'reports.financial',           'module' => 'reports'],
-            ['name' => 'reports.financial_summary',   'module' => 'reports'],
-            ['name' => 'reports.vat',                 'module' => 'reports'],
-            ['name' => 'employees.manage_all',        'module' => 'employees'],
-            ['name' => 'employees.manage_branch',     'module' => 'employees'],
-            ['name' => 'suppliers.manage',            'module' => 'suppliers'],
-            ['name' => 'suppliers.view',              'module' => 'suppliers'],
-            ['name' => 'customers.manage',            'module' => 'customers'],
-            ['name' => 'customers.manage_own',        'module' => 'customers'],
-            ['name' => 'audit_logs.view_all',         'module' => 'audit'],
-            ['name' => 'audit_logs.view_own',         'module' => 'audit'],
-            ['name' => 'system.configure',            'module' => 'system'],
-            ['name' => 'system.configure_tenant',     'module' => 'system'],
+            // Platform / SaaS admin
+            ['name' => 'platform.manage'],
+            ['name' => 'subscriptions.manage'],
+            ['name' => 'subscriptions.manage_own'],
+
+            // Users & system
+            ['name' => 'users.manage_all'],
+            ['name' => 'users.manage_branch'],
+            ['name' => 'system.configure'],
+            ['name' => 'system.configure_tenant'],
+
+            // Dashboard
+            ['name' => 'dashboard.view_all'],
+            ['name' => 'dashboard.view_branch'],
+            ['name' => 'dashboard.view_financial'],
+
+            // Products & catalogue (routes: products.view, products.manage)
+            ['name' => 'products.view'],
+            ['name' => 'products.manage'],
+
+            // Inventory (routes: inventory.adjust, inventory.audit, inventory.audit_count, inventory.view)
+            ['name' => 'inventory.view'],
+            ['name' => 'inventory.adjust'],
+            ['name' => 'inventory.audit'],
+            ['name' => 'inventory.audit_count'],
+
+            // Branch stock transfers (routes: transfers.view/create/approve/dispatch/receive)
+            ['name' => 'transfers.view'],
+            ['name' => 'transfers.create'],
+            ['name' => 'transfers.approve'],
+            ['name' => 'transfers.dispatch'],
+            ['name' => 'transfers.receive'],
+
+            // Purchasing (routes: purchases.view/create/manage/receive)
+            ['name' => 'purchases.view'],
+            ['name' => 'purchases.create'],
+            ['name' => 'purchases.manage'],
+            ['name' => 'purchases.receive'],
+
+            // Sales / POS (routes: sales.view/create/manage, sidebar: sales.process)
+            ['name' => 'sales.process'],   // kept for sidebar backward-compat
+            ['name' => 'sales.view'],
+            ['name' => 'sales.create'],
+            ['name' => 'sales.manage'],
+
+            // Customers
+            ['name' => 'customers.manage'],
+            ['name' => 'customers.manage_own'],
+
+            // Expenses (routes: expenses.view/create/manage)
+            ['name' => 'expenses.view'],
+            ['name' => 'expenses.create'],
+            ['name' => 'expenses.manage'],
+
+            // Reports (routes: reports.view, reports.financial, reports.vat)
+            ['name' => 'reports.view'],
+            ['name' => 'reports.financial'],
+            ['name' => 'reports.financial_summary'],
+            ['name' => 'reports.vat'],
+
+            // Suppliers (sidebar: suppliers.manage/view)
+            ['name' => 'suppliers.manage'],
+            ['name' => 'suppliers.view'],
+
+            // Employees & attendance (routes: employees.view/create/edit/delete, attendance.manage)
+            ['name' => 'employees.manage_all'],    // kept for sidebar backward-compat
+            ['name' => 'employees.manage_branch'], // kept for sidebar backward-compat
+            ['name' => 'employees.view'],
+            ['name' => 'employees.create'],
+            ['name' => 'employees.edit'],
+            ['name' => 'employees.delete'],
+            ['name' => 'attendance.manage'],
+
+            // Audit logs (sidebar: audit_logs.view_all/own)
+            ['name' => 'audit_logs.view_all'],
+            ['name' => 'audit_logs.view_own'],
         ];
 
         foreach ($permissions as $perm) {
             Permission::firstOrCreate(['name' => $perm['name'], 'guard_name' => 'web']);
         }
+
+        $totalPermissions = Permission::count();
 
         // Role 1: Super Admin — all permissions, no tenant
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
@@ -62,28 +107,20 @@ class RolesAndPermissionsSeeder extends Seeder
         $businessOwner->syncPermissions([
             'subscriptions.manage_own',
             'users.manage_all',
-            'dashboard.view_all',
-            'dashboard.view_financial',
-            'products.manage',
-            'products.view',
-            'sales.process',
-            'purchase_orders.manage',
-            'purchase_orders.receive',
-            'inventory.adjust',
-            'inventory.transfer',
-            'inventory.transfer_dispatch',
-            'inventory.audit',
-            'expenses.manage',
-            'reports.financial',
-            'reports.financial_summary',
-            'reports.vat',
-            'employees.manage_all',
-            'suppliers.manage',
-            'suppliers.view',
-            'customers.manage',
-            'customers.manage_own',
-            'audit_logs.view_own',
             'system.configure_tenant',
+            'dashboard.view_all', 'dashboard.view_financial',
+            'products.manage', 'products.view',
+            'inventory.view', 'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
+            'transfers.view', 'transfers.create', 'transfers.approve', 'transfers.dispatch', 'transfers.receive',
+            'purchases.view', 'purchases.create', 'purchases.manage', 'purchases.receive',
+            'sales.process', 'sales.view', 'sales.create', 'sales.manage',
+            'customers.manage', 'customers.manage_own',
+            'expenses.view', 'expenses.create', 'expenses.manage',
+            'reports.view', 'reports.financial', 'reports.financial_summary', 'reports.vat',
+            'suppliers.manage', 'suppliers.view',
+            'employees.manage_all', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete',
+            'attendance.manage',
+            'audit_logs.view_own',
         ]);
 
         // Role 3: Branch Manager — branch-scoped, no full financials
@@ -91,27 +128,23 @@ class RolesAndPermissionsSeeder extends Seeder
         $branchManager->syncPermissions([
             'users.manage_branch',
             'dashboard.view_branch',
-            'products.manage',
-            'products.view',
-            'sales.process',
-            'purchase_orders.manage',
-            'purchase_orders.receive',
-            'inventory.adjust',
-            'inventory.transfer',
-            'inventory.transfer_dispatch',
-            'inventory.audit',
-            'expenses.manage',
-            'reports.financial_summary',
-            'employees.manage_branch',
-            'suppliers.manage',
-            'suppliers.view',
+            'products.manage', 'products.view',
+            'inventory.view', 'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
+            'transfers.view', 'transfers.create', 'transfers.approve', 'transfers.dispatch', 'transfers.receive',
+            'purchases.view', 'purchases.create', 'purchases.manage', 'purchases.receive',
+            'sales.process', 'sales.view', 'sales.create', 'sales.manage',
             'customers.manage',
+            'expenses.view', 'expenses.create', 'expenses.manage',
+            'reports.view', 'reports.financial_summary',
+            'suppliers.manage', 'suppliers.view',
+            'employees.manage_branch', 'employees.view',
+            'attendance.manage',
         ]);
 
         // Role 4: Cashier — front-line POS only
         $cashier = Role::firstOrCreate(['name' => 'cashier', 'guard_name' => 'web']);
         $cashier->syncPermissions([
-            'sales.process',
+            'sales.process', 'sales.view', 'sales.create',
             'customers.manage_own',
             'products.view',
         ]);
@@ -119,11 +152,10 @@ class RolesAndPermissionsSeeder extends Seeder
         // Role 5: Storekeeper — physical stock management only
         $storekeeper = Role::firstOrCreate(['name' => 'storekeeper', 'guard_name' => 'web']);
         $storekeeper->syncPermissions([
-            'purchase_orders.receive',
-            'inventory.adjust',
-            'inventory.transfer_dispatch',
-            'inventory.audit_count',
             'products.view',
+            'inventory.view', 'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
+            'transfers.view', 'transfers.create', 'transfers.receive',
+            'purchases.view', 'purchases.receive',
             'suppliers.view',
         ]);
 
@@ -131,15 +163,13 @@ class RolesAndPermissionsSeeder extends Seeder
         $accountant = Role::firstOrCreate(['name' => 'accountant', 'guard_name' => 'web']);
         $accountant->syncPermissions([
             'dashboard.view_financial',
-            'expenses.view',
-            'expenses.manage',
-            'reports.financial',
-            'reports.financial_summary',
-            'reports.vat',
+            'purchases.view',
+            'expenses.view', 'expenses.create', 'expenses.manage',
+            'reports.view', 'reports.financial', 'reports.financial_summary', 'reports.vat',
             'suppliers.view',
         ]);
 
-        $this->command->info('✅ 6 roles and 33 permissions seeded successfully.');
+        $this->command->info("✅ 6 roles and {$totalPermissions} permissions seeded successfully.");
         $this->command->table(
             ['Role', 'Permissions Count'],
             Role::withCount('permissions')->get()

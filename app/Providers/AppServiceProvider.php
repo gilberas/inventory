@@ -12,6 +12,7 @@ use App\Listeners\HandleLowStockDetected;
 use App\Listeners\InvalidateDashboardCache;
 use App\Listeners\InvalidateFinancialCache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+
+        // Super admin bypasses all permission/gate checks globally.
+        Gate::before(fn ($user, $ability) => $user->hasRole('super_admin') ? true : null);
 
         // Dashboard cache invalidation
         Event::listen(SaleCompleted::class,    [InvalidateDashboardCache::class, 'handleSaleCompleted']);

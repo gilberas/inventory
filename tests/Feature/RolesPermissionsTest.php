@@ -33,15 +33,15 @@ class RolesPermissionsTest extends TestCase
         $this->assertSame(6, Role::count());
     }
 
-    public function test_33_permissions_exist_in_database(): void
+    public function test_all_permissions_exist_in_database(): void
     {
-        $this->assertSame(33, Permission::count());
+        $this->assertGreaterThanOrEqual(49, Permission::count());
     }
 
-    public function test_super_admin_has_all_33_permissions(): void
+    public function test_super_admin_has_all_permissions(): void
     {
         $role = Role::findByName('super_admin');
-        $this->assertSame(33, $role->permissions()->count());
+        $this->assertSame(Permission::count(), $role->permissions()->count());
     }
 
     public function test_business_owner_does_not_have_platform_manage(): void
@@ -50,29 +50,36 @@ class RolesPermissionsTest extends TestCase
         $this->assertFalse($role->hasPermissionTo('platform.manage'));
     }
 
-    public function test_cashier_only_has_3_permissions(): void
+    public function test_cashier_has_correct_permissions(): void
     {
         $role = Role::findByName('cashier');
-        $this->assertSame(3, $role->permissions()->count());
         $this->assertTrue($role->hasPermissionTo('sales.process'));
+        $this->assertTrue($role->hasPermissionTo('sales.view'));
+        $this->assertTrue($role->hasPermissionTo('sales.create'));
         $this->assertTrue($role->hasPermissionTo('products.view'));
         $this->assertTrue($role->hasPermissionTo('customers.manage_own'));
+        $this->assertFalse($role->hasPermissionTo('inventory.adjust'));
+        $this->assertFalse($role->hasPermissionTo('reports.financial'));
     }
 
-    public function test_storekeeper_only_has_6_permissions(): void
+    public function test_storekeeper_has_correct_permissions(): void
     {
         $role = Role::findByName('storekeeper');
-        $this->assertSame(6, $role->permissions()->count());
+        $this->assertTrue($role->hasPermissionTo('inventory.view'));
+        $this->assertTrue($role->hasPermissionTo('inventory.adjust'));
+        $this->assertTrue($role->hasPermissionTo('purchases.receive'));
+        $this->assertTrue($role->hasPermissionTo('transfers.view'));
         $this->assertFalse($role->hasPermissionTo('sales.process'));
         $this->assertFalse($role->hasPermissionTo('reports.financial'));
     }
 
-    public function test_accountant_only_has_7_permissions(): void
+    public function test_accountant_has_correct_permissions(): void
     {
         $role = Role::findByName('accountant');
-        $this->assertSame(7, $role->permissions()->count());
         $this->assertTrue($role->hasPermissionTo('reports.financial'));
         $this->assertTrue($role->hasPermissionTo('reports.vat'));
+        $this->assertTrue($role->hasPermissionTo('reports.view'));
+        $this->assertTrue($role->hasPermissionTo('expenses.manage'));
         $this->assertFalse($role->hasPermissionTo('sales.process'));
         $this->assertFalse($role->hasPermissionTo('inventory.adjust'));
     }

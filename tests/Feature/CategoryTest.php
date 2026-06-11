@@ -23,10 +23,8 @@ class CategoryTest extends TestCase
         parent::setUp();
 
         Role::firstOrCreate(['name' => 'business_owner', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'view categories',   'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'create categories', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'edit categories',   'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'delete categories', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'products.manage', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'products.view',   'guard_name' => 'web']);
 
         $this->tenant = Tenant::create([
             'name' => 'Test Co', 'slug' => 'test-co', 'status' => 'active',
@@ -37,9 +35,7 @@ class CategoryTest extends TestCase
             'status'    => 'active',
         ]);
         $this->manager->assignRole('business_owner');
-        $this->manager->givePermissionTo([
-            'view categories', 'create categories', 'edit categories', 'delete categories',
-        ]);
+        $this->manager->givePermissionTo(['products.manage', 'products.view']);
     }
 
     // ── Test 1 ────────────────────────────────────────────────────────────────

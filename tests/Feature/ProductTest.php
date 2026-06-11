@@ -27,10 +27,8 @@ class ProductTest extends TestCase
 
         // Roles & permissions
         Role::firstOrCreate(['name' => 'business_owner', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'view products',   'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'create products', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'edit products',   'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'delete products', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'products.view',   'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'products.manage', 'guard_name' => 'web']);
 
         $this->tenant = Tenant::create([
             'name'   => 'Test Co',
@@ -44,9 +42,7 @@ class ProductTest extends TestCase
             'status'    => 'active',
         ]);
         $this->manager->assignRole('business_owner');
-        $this->manager->givePermissionTo([
-            'view products', 'create products', 'edit products', 'delete products',
-        ]);
+        $this->manager->givePermissionTo(['products.view', 'products.manage']);
 
         $this->categoryId = DB::table('product_categories')->insertGetId([
             'name'       => 'Electronics',
