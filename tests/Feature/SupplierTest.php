@@ -337,7 +337,7 @@ class SupplierTest extends TestCase
         $this->delete(route('suppliers.destroy', $toDeactivate));
 
         // Default index (no ?status param) shows only active
-        $response = $this->get(route('suppliers.index'));
+        $response = $this->getJson(route('suppliers.index'));
         $response->assertOk();
 
         $names = collect($response->json('data.data'))->pluck('name')->toArray();
@@ -378,7 +378,7 @@ class SupplierTest extends TestCase
         $this->post(route('suppliers.store'), ['name' => 'Our Supplier']);
 
         // Index must not return tenant B's supplier
-        $response = $this->get(route('suppliers.index', ['status' => 'all']));
+        $response = $this->getJson(route('suppliers.index', ['status' => 'all']));
         $response->assertOk();
 
         $names = collect($response->json('data.data'))->pluck('name')->toArray();
