@@ -95,7 +95,7 @@ class RequisitionController extends Controller
             ]);
 
             $managers = User::where('tenant_id', $requisition->tenant_id)
-                ->permission('purchases.manage')
+                ->permission('purchase_orders.manage')
                 ->get();
 
             foreach ($managers as $manager) {
@@ -121,9 +121,9 @@ class RequisitionController extends Controller
                 'new_values' => ['status' => PurchaseRequisition::STATUS_PENDING],
             ]);
 
-            // Notify all users with purchases.manage permission (Hard Rule §3: queued)
+            // Notify all users with purchase_orders.manage permission (Hard Rule §3: queued)
             $managers = User::where('tenant_id', $requisition->tenant_id)
-                ->permission('purchases.manage')
+                ->permission('purchase_orders.manage')
                 ->get();
 
             foreach ($managers as $manager) {

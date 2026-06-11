@@ -99,9 +99,9 @@ class SupplierInvoiceController extends Controller
             ]);
 
             if ($hasDiscrepancy) {
-                // Notify users with purchases.manage permission (Hard Rule §3: queued via ShouldQueue)
+                // Notify users with purchase_orders.manage permission (Hard Rule §3: queued via ShouldQueue)
                 $managers = User::where('tenant_id', $invoice->tenant_id)
-                    ->permission('purchases.manage')
+                    ->permission('purchase_orders.manage')
                     ->get();
 
                 foreach ($managers as $manager) {
