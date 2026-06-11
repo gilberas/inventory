@@ -102,7 +102,7 @@
     @endif
 
     {{-- Manager action buttons (pending only) --}}
-    @can('purchases.manage')
+    @can('purchase_orders.manage')
     @if($requisition->status === \App\Models\PurchaseRequisition::STATUS_PENDING)
     <div class="mx-4 mt-6 space-y-3 pb-6">
 

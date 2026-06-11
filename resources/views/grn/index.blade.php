@@ -2,7 +2,7 @@
 @section('title', 'Goods Received Notes')
 @section('breadcrumb', 'Purchasing / Receive (GRN)')
 @section('topbar-actions')
-    @can('purchases.receive')
+    @can('purchase_orders.receive')
     <a href="{{ route('grn.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New GRN</a>
     @endcan
 @endsection
@@ -44,7 +44,7 @@
                         <div style="display:flex;gap:.35rem">
                             <a href="{{ route('grn.show', $grn) }}" class="btn btn-secondary btn-sm btn-icon"><i class="fas fa-eye"></i></a>
                             @if($grn->status === 'draft')
-                            @can('purchases.receive')
+                            @can('purchase_orders.receive')
                             <form method="POST" action="{{ route('grn.confirm', $grn) }}" onsubmit="return confirm('Confirm this GRN? Inventory will be updated.')">
                                 @csrf
                                 <button class="btn btn-primary btn-sm btn-icon" title="Confirm"><i class="fas fa-check"></i></button>

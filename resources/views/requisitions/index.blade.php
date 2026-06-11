@@ -2,7 +2,7 @@
 @section('title', 'Purchase Requisitions')
 @section('breadcrumb', 'Purchasing / Requisitions')
 @section('topbar-actions')
-    @can('purchases.create')
+    @can('purchase_orders.manage')
     <a href="{{ route('requisitions.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Requisition</a>
     @endcan
 @endsection

@@ -2,7 +2,7 @@
 @section('title', 'Expenses')
 @section('breadcrumb', 'Finance / Expenses')
 @section('topbar-actions')
-    @can('expenses.create')
+    @can('expenses.manage')
     <a href="#" onclick="document.getElementById('newExpenseModal').style.display='flex'" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Expense</a>
     @endcan
 @endsection

@@ -94,7 +94,7 @@
         @endcanany
 
         {{-- ── PURCHASING (owner, branch_manager, storekeeper [receive only]) --}}
-        @canany(['purchases.view', 'purchases.manage', 'purchases.receive'])
+        @canany(['purchase_orders.manage', 'purchase_orders.receive', 'suppliers.view', 'suppliers.manage'])
         <div class="nav-section-label">Purchasing</div>
 
         @canany(['suppliers.manage', 'suppliers.view'])
@@ -117,7 +117,7 @@
         @endif
 
         @if(Route::has('requisitions.index'))
-        @can('purchases.manage')
+        @can('purchase_orders.manage')
         <a href="{{ route('requisitions.index') }}"
            class="nav-item {{ request()->routeIs('requisitions.*') ? 'active' : '' }}">
             <i class="fas fa-clipboard-list"></i> Requisitions
@@ -144,7 +144,7 @@
         </a>
         @endcanany
 
-        @can('sales.view')
+        @can('sales.process')
         @if(Route::has('sales.index'))
         <a href="{{ route('sales.index') }}"
            class="nav-item {{ request()->routeIs('sales.*') ? 'active' : '' }}">
