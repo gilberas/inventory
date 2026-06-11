@@ -36,7 +36,11 @@ class CustomerController extends Controller
 
         $customers = $query->latest()->paginate(15)->withQueryString();
 
-        return response()->json(['data' => $customers]);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $customers]);
+        }
+
+        return view('customers.index', compact('customers'));
     }
 
     // ── GET /customers/segments ───────────────────────────────────────────────
