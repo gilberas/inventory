@@ -20,7 +20,11 @@ class RequisitionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return response()->json(['data' => $requisitions]);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $requisitions]);
+        }
+
+        return view('requisitions.index', compact('requisitions'));
     }
 
     public function create()

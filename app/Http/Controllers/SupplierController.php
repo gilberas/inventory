@@ -34,7 +34,11 @@ class SupplierController extends Controller
 
         $suppliers = $query->latest()->paginate(15)->withQueryString();
 
-        return response()->json(['data' => $suppliers]);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $suppliers]);
+        }
+
+        return view('suppliers.index', compact('suppliers'));
     }
 
     // ── POST /suppliers ───────────────────────────────────────

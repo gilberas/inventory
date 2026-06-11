@@ -42,7 +42,13 @@ class ExpenseController extends Controller
             $query->whereDate('expense_date', '<=', $request->to);
         }
 
-        return response()->json(['data' => $query->paginate(20)->withQueryString()]);
+        $expenses = $query->paginate(20)->withQueryString();
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $expenses]);
+        }
+
+        return view('expenses.index', compact('expenses'));
     }
 
     // ── GET /expenses/summary ─────────────────────────────────────────────────

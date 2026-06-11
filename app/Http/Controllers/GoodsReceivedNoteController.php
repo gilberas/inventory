@@ -25,7 +25,11 @@ class GoodsReceivedNoteController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return response()->json(['data' => $grns]);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $grns]);
+        }
+
+        return view('grn.index', compact('grns'));
     }
 
     public function create()
