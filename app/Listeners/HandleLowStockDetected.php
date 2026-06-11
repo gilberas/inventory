@@ -21,7 +21,7 @@ class HandleLowStockDetected
 
         // Notify business owner(s) of the tenant
         $owners = User::where('tenant_id', $tenantId)
-            ->role('Super Admin')
+            ->role(['business_owner', 'super_admin'])
             ->get();
 
         $recipients = $storekeepers->merge($owners)->unique('id');
