@@ -422,7 +422,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
     // ── Users (Super Admin only) ──────────────────────────────
-    Route::middleware('role:Super Admin')->resource('users', UserController::class);
+    Route::middleware('permission:users.manage_all')->resource('users', UserController::class);
 
     // ── Barcodes & Scanners (§5.15) ───────────────────────────
     Route::prefix('products/{product}')->name('products.')->group(function () {
