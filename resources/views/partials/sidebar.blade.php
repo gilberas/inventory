@@ -245,19 +245,21 @@
 
     </nav>
 
-    {{-- Footer: user info + logout --}}
+    {{-- Footer: user info + profile link + logout --}}
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="avatar">
-                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+        <a href="{{ route('profile.edit') }}" style="display:flex;align-items:center;gap:.5rem;text-decoration:none;color:inherit;flex:1;min-width:0;" title="Edit profile">
+            @if(auth()->user()->profile_photo_path)
+            <div class="avatar" style="overflow:hidden;flex-shrink:0">
+                <img src="{{ Storage::url(auth()->user()->profile_photo_path) }}" alt="" style="width:100%;height:100%;object-fit:cover">
             </div>
-            <div>
-                <div class="user-name">{{ auth()->user()->name }}</div>
-                <div class="user-role">
-                    {{ auth()->user()->getRoleNames()->first() ?? 'User' }}
-                </div>
+            @else
+            <div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
+            @endif
+            <div style="min-width:0">
+                <div class="user-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ auth()->user()->name }}</div>
+                <div class="user-role">{{ auth()->user()->getRoleNames()->first() ?? 'User' }}</div>
             </div>
-        </div>
+        </a>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
