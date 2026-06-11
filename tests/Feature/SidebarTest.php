@@ -49,7 +49,7 @@ class SidebarTest extends TestCase
 
     public function test_suppliers_route_returns_html_view_not_json(): void
     {
-        $user = $this->makeUserWithPermissions(['purchases.view']);
+        $user = $this->makeUserWithPermissions(['suppliers.view']);
 
         $response = $this->actingAs($user)->get(route('suppliers.index'));
 
@@ -62,7 +62,7 @@ class SidebarTest extends TestCase
 
     public function test_grn_route_returns_html_view_not_json(): void
     {
-        $user = $this->makeUserWithPermissions(['purchases.view']);
+        $user = $this->makeUserWithPermissions(['purchase_orders.manage']);
 
         $response = $this->actingAs($user)->get(route('grn.index'));
 
@@ -75,7 +75,7 @@ class SidebarTest extends TestCase
 
     public function test_requisitions_route_returns_html_view_not_json(): void
     {
-        $user = $this->makeUserWithPermissions(['purchases.view']);
+        $user = $this->makeUserWithPermissions(['purchase_orders.manage']);
 
         $response = $this->actingAs($user)->get(route('requisitions.index'));
 

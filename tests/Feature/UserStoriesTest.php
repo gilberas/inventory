@@ -47,34 +47,34 @@ class UserStoriesTest extends TestCase
     {
         parent::setUp();
 
-        // Create all permissions used in this test suite
+        // Create all permissions used in this test suite (seeded names)
         $permissions = [
-            'inventory.view', 'inventory.adjust', 'inventory.audit',
-            'inventory.audit_count',
-            'purchases.view', 'purchases.create', 'purchases.manage',
-            'purchases.receive',
-            'sales.view', 'sales.create', 'sales.manage',
-            'expenses.view', 'expenses.create', 'expenses.manage',
-            'transfers.view', 'transfers.create', 'transfers.approve',
-            'transfers.dispatch', 'transfers.receive',
-            'reports.view',
+            'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
+            'inventory.transfer', 'inventory.transfer_dispatch',
+            'purchase_orders.manage', 'purchase_orders.receive',
+            'sales.process',
+            'expenses.view', 'expenses.manage',
+            'reports.financial_summary',
+            'suppliers.view', 'suppliers.manage',
+            'customers.manage', 'customers.manage_own',
         ];
         foreach ($permissions as $p) {
             Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
         }
 
-        // Roles
-        $ownerRole       = Role::firstOrCreate(['name' => 'Super Admin',   'guard_name' => 'web']);
-        $storekeepRole   = Role::firstOrCreate(['name' => 'Storekeeper',   'guard_name' => 'web']);
-        $cashierRole     = Role::firstOrCreate(['name' => 'Sales Rep',     'guard_name' => 'web']);
+        // Roles — use seeded role names (lowercase_underscore)
+        $ownerRole       = Role::firstOrCreate(['name' => 'super_admin',     'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'business_owner', 'guard_name' => 'web']);
+        $storekeepRole   = Role::firstOrCreate(['name' => 'storekeeper',  'guard_name' => 'web']);
+        $cashierRole     = Role::firstOrCreate(['name' => 'cashier',      'guard_name' => 'web']);
 
         $ownerRole->givePermissionTo($permissions);
         $storekeepRole->givePermissionTo([
-            'inventory.view', 'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
-            'purchases.receive', 'purchases.view',
-            'transfers.view', 'transfers.create', 'transfers.dispatch', 'transfers.receive',
+            'inventory.adjust', 'inventory.audit', 'inventory.audit_count',
+            'purchase_orders.receive', 'purchase_orders.manage',
+            'inventory.transfer', 'inventory.transfer_dispatch',
         ]);
-        $cashierRole->givePermissionTo(['sales.view', 'sales.create', 'sales.manage']);
+        $cashierRole->givePermissionTo(['sales.process']);
 
         // Tenant
         $this->tenant = Tenant::create([
@@ -113,21 +113,21 @@ class UserStoriesTest extends TestCase
             'branch_id' => $this->branchId,
             'status'    => 'active',
         ]);
-        $this->owner->assignRole('Super Admin');
+        $this->owner->assignRole('super_admin');
 
         $this->storekeeper = User::factory()->create([
             'tenant_id' => $this->tenant->id,
             'branch_id' => $this->branchId,
             'status'    => 'active',
         ]);
-        $this->storekeeper->assignRole('Storekeeper');
+        $this->storekeeper->assignRole('storekeeper');
 
         $this->cashier = User::factory()->create([
             'tenant_id' => $this->tenant->id,
             'branch_id' => $this->branchId,
             'status'    => 'active',
         ]);
-        $this->cashier->assignRole('Sales Rep');
+        $this->cashier->assignRole('cashier');
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
@@ -315,7 +315,7 @@ class UserStoriesTest extends TestCase
             'branch_id' => $this->branchId,
             'status'    => 'active',
         ]);
-        $storekeeper->assignRole('Storekeeper');
+        $storekeeper->assignRole('storekeeper');
 
         $response = $this->actingAs($storekeeper)->post(route('transfers.store'), [
             'to_branch_id'          => $branch2,

@@ -34,11 +34,9 @@ class PurchaseTest extends TestCase
     {
         parent::setUp();
 
-        Permission::firstOrCreate(['name' => 'purchases.view',    'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'purchases.create',  'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'purchases.manage',  'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'purchases.receive', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'inventory.view',    'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'purchase_orders.manage',  'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'purchase_orders.receive', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'inventory.audit',   'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'inventory.adjust',  'guard_name' => 'web']);
 
         $this->tenant = Tenant::create([
@@ -54,8 +52,8 @@ class PurchaseTest extends TestCase
             'status'    => 'active',
         ]);
         $this->manager->givePermissionTo([
-            'purchases.view', 'purchases.create', 'purchases.manage', 'purchases.receive',
-            'inventory.view', 'inventory.adjust',
+            'purchase_orders.manage', 'purchase_orders.receive',
+            'inventory.audit', 'inventory.adjust',
         ]);
 
         // Buyer — can submit requisitions but not approve
@@ -63,7 +61,7 @@ class PurchaseTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->buyer->givePermissionTo(['purchases.view', 'purchases.create']);
+        $this->buyer->givePermissionTo(['purchase_orders.receive']);
 
         $this->supplierId = DB::table('suppliers')->insertGetId([
             'tenant_id'   => $this->tenant->id,

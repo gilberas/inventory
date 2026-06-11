@@ -27,7 +27,7 @@ class ExpenseTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['expenses.view', 'expenses.create', 'expenses.manage'] as $perm) {
+        foreach (['expenses.view', 'expenses.manage'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -42,13 +42,13 @@ class ExpenseTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->creator->givePermissionTo(['expenses.view', 'expenses.create']);
+        $this->creator->givePermissionTo(['expenses.view', 'expenses.manage']);
 
         $this->manager = User::factory()->create([
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->manager->givePermissionTo(['expenses.view', 'expenses.create', 'expenses.manage']);
+        $this->manager->givePermissionTo(['expenses.view', 'expenses.manage']);
 
         $this->warehouseId = DB::table('warehouses')->insertGetId([
             'tenant_id'  => $this->tenant->id,

@@ -33,7 +33,7 @@ class POSTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['sales.view', 'sales.create', 'sales.manage'] as $perm) {
+        foreach (['sales.process'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -48,13 +48,13 @@ class POSTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->cashier->givePermissionTo(['sales.view', 'sales.create']);
+        $this->cashier->givePermissionTo(['sales.process']);
 
         $this->manager = User::factory()->create([
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->manager->givePermissionTo(['sales.view', 'sales.create', 'sales.manage']);
+        $this->manager->givePermissionTo(['sales.process']);
 
         $this->warehouseId = DB::table('warehouses')->insertGetId([
             'tenant_id'  => $this->tenant->id,

@@ -23,7 +23,7 @@ class ReportTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['reports.view', 'reports.financial', 'reports.vat'] as $perm) {
+        foreach (['reports.financial_summary', 'reports.financial', 'reports.vat'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -37,7 +37,7 @@ class ReportTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->manager->givePermissionTo(['reports.view', 'reports.financial', 'reports.vat']);
+        $this->manager->givePermissionTo(['reports.financial_summary', 'reports.financial', 'reports.vat']);
 
         $this->warehouseId = DB::table('warehouses')->insertGetId([
             'tenant_id'  => $this->tenant->id,
@@ -256,7 +256,7 @@ class ReportTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $cashier2->givePermissionTo('reports.view');
+        $cashier2->givePermissionTo('reports.financial_summary');
 
         $today = today()->toDateString();
         $this->insertSale(400.00, $today, $this->cashierId);

@@ -29,7 +29,6 @@ class WarehouseTest extends TestCase
         Role::firstOrCreate(['name' => 'business_owner', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'inventory.audit',  'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'inventory.adjust', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'inventory.view',   'guard_name' => 'web']);
 
         $this->tenant = Tenant::create([
             'name'   => 'WH Test Co',
@@ -43,7 +42,7 @@ class WarehouseTest extends TestCase
             'status'    => 'active',
         ]);
         $this->manager->assignRole('business_owner');
-        $this->manager->givePermissionTo(['inventory.audit', 'inventory.adjust', 'inventory.view']);
+        $this->manager->givePermissionTo(['inventory.audit', 'inventory.adjust']);
     }
 
     // ── Test 1 ────────────────────────────────────────────────────────────────

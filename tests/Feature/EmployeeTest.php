@@ -24,8 +24,7 @@ class EmployeeTest extends TestCase
         parent::setUp();
 
         $perms = [
-            'employees.view', 'employees.create', 'employees.edit',
-            'employees.delete', 'attendance.manage',
+            'employees.manage_branch', 'employees.manage_all',
         ];
         foreach ($perms as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);

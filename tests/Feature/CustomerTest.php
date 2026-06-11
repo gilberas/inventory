@@ -25,7 +25,7 @@ class CustomerTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['sales.view', 'sales.create', 'sales.manage'] as $perm) {
+        foreach (['customers.manage', 'customers.manage_own', 'sales.process'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -40,7 +40,7 @@ class CustomerTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->user->givePermissionTo(['sales.view', 'sales.create', 'sales.manage']);
+        $this->user->givePermissionTo(['customers.manage', 'customers.manage_own', 'sales.process']);
 
         $this->warehouseId = DB::table('warehouses')->insertGetId([
             'tenant_id'  => $this->tenant->id,

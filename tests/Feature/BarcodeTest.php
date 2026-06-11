@@ -21,7 +21,7 @@ class BarcodeTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['inventory.view', 'inventory.adjust', 'sales.create', 'purchases.receive'] as $perm) {
+        foreach (['inventory.audit', 'inventory.adjust', 'sales.process', 'purchase_orders.receive'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -35,7 +35,7 @@ class BarcodeTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->manager->givePermissionTo(['inventory.view', 'inventory.adjust', 'sales.create', 'purchases.receive']);
+        $this->manager->givePermissionTo(['inventory.audit', 'inventory.adjust', 'sales.process', 'purchase_orders.receive']);
 
         $this->productId = DB::table('products')->insertGetId([
             'tenant_id'     => $this->tenant->id,

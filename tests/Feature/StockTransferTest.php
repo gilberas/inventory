@@ -27,11 +27,11 @@ class StockTransferTest extends TestCase
     {
         parent::setUp();
 
-        // Roles & permissions
-        Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'web']);
+        // Roles & permissions (seeded names)
+        Role::firstOrCreate(['name' => 'branch_manager', 'guard_name' => 'web']);
         foreach ([
-            'transfers.view', 'transfers.create',
-            'transfers.approve', 'transfers.dispatch', 'transfers.receive',
+            'inventory.audit', 'inventory.transfer',
+            'inventory.adjust', 'inventory.transfer_dispatch',
         ] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
@@ -48,10 +48,10 @@ class StockTransferTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'active',
         ]);
-        $this->manager->assignRole('Manager');
+        $this->manager->assignRole('branch_manager');
         $this->manager->givePermissionTo([
-            'transfers.view', 'transfers.create',
-            'transfers.approve', 'transfers.dispatch', 'transfers.receive',
+            'inventory.audit', 'inventory.transfer',
+            'inventory.adjust', 'inventory.transfer_dispatch',
         ]);
 
         // Two branches (raw SQL — bypasses Branch::created observer)
@@ -263,7 +263,7 @@ class StockTransferTest extends TestCase
             'tenant_id' => $starterTenant->id,
             'status'    => 'active',
         ]);
-        $starterUser->givePermissionTo('transfers.create');
+        $starterUser->givePermissionTo('inventory.transfer');
 
         $response = $this->actingAs($starterUser)
             ->post(route('transfers.store'), [

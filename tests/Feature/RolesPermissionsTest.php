@@ -35,7 +35,7 @@ class RolesPermissionsTest extends TestCase
 
     public function test_all_permissions_exist_in_database(): void
     {
-        $this->assertGreaterThanOrEqual(49, Permission::count());
+        $this->assertGreaterThanOrEqual(33, Permission::count());
     }
 
     public function test_super_admin_has_all_permissions(): void
@@ -54,8 +54,6 @@ class RolesPermissionsTest extends TestCase
     {
         $role = Role::findByName('cashier');
         $this->assertTrue($role->hasPermissionTo('sales.process'));
-        $this->assertTrue($role->hasPermissionTo('sales.view'));
-        $this->assertTrue($role->hasPermissionTo('sales.create'));
         $this->assertTrue($role->hasPermissionTo('products.view'));
         $this->assertTrue($role->hasPermissionTo('customers.manage_own'));
         $this->assertFalse($role->hasPermissionTo('inventory.adjust'));
@@ -65,10 +63,10 @@ class RolesPermissionsTest extends TestCase
     public function test_storekeeper_has_correct_permissions(): void
     {
         $role = Role::findByName('storekeeper');
-        $this->assertTrue($role->hasPermissionTo('inventory.view'));
         $this->assertTrue($role->hasPermissionTo('inventory.adjust'));
-        $this->assertTrue($role->hasPermissionTo('purchases.receive'));
-        $this->assertTrue($role->hasPermissionTo('transfers.view'));
+        $this->assertTrue($role->hasPermissionTo('inventory.audit'));
+        $this->assertTrue($role->hasPermissionTo('purchase_orders.receive'));
+        $this->assertTrue($role->hasPermissionTo('inventory.transfer'));
         $this->assertFalse($role->hasPermissionTo('sales.process'));
         $this->assertFalse($role->hasPermissionTo('reports.financial'));
     }
@@ -78,7 +76,7 @@ class RolesPermissionsTest extends TestCase
         $role = Role::findByName('accountant');
         $this->assertTrue($role->hasPermissionTo('reports.financial'));
         $this->assertTrue($role->hasPermissionTo('reports.vat'));
-        $this->assertTrue($role->hasPermissionTo('reports.view'));
+        $this->assertTrue($role->hasPermissionTo('reports.financial_summary'));
         $this->assertTrue($role->hasPermissionTo('expenses.manage'));
         $this->assertFalse($role->hasPermissionTo('sales.process'));
         $this->assertFalse($role->hasPermissionTo('inventory.adjust'));
