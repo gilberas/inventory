@@ -50,8 +50,8 @@
 
         {{-- Cart items --}}
         <div class="flex-1 overflow-y-auto p-4">
-            <div id="cart-empty" class="flex flex-col items-center justify-center h-full text-gray-400 py-16">
-                <svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div id="cart-empty" class="flex flex-col items-center justify-center text-gray-400 py-8">
+                <svg class="w-10 h-10 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                           d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
