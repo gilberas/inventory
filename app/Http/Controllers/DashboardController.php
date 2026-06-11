@@ -138,8 +138,8 @@ class DashboardController extends Controller
     {
         return DB::table('purchase_requisitions')
             ->where('tenant_id', $tenantId)
-            ->where('status', 'submitted')
-            ->when($warehouseId, fn ($q) => $q->where('warehouse_id', $warehouseId))
+            ->whereIn('status', ['pending', 'draft'])
+            ->when($warehouseId, fn ($q) => $q->where('branch_id', $warehouseId))
             ->count();
     }
 
