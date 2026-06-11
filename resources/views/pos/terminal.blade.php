@@ -2,6 +2,13 @@
 
 @section('title', 'POS Terminal')
 
+{{-- The POS terminal is built with Tailwind utility classes. The base layout
+     ships a custom dark-theme CSS system and does NOT load the Vite/Tailwind
+     bundle, so we pull it in here, scoped to this page only. --}}
+@push('styles')
+    @vite(['resources/css/app.css'])
+@endpush
+
 @section('content')
 <div class="flex h-screen overflow-hidden bg-gray-100" id="pos-app" data-warehouse="{{ $session?->warehouse_id ?? '' }}">
 
