@@ -86,7 +86,7 @@
         @endcanany
 
         {{-- ── TRANSFERS (owner, branch_manager, storekeeper) ──────── --}}
-        @canany(['transfers.view', 'transfers.create'])
+        @canany(['inventory.transfer', 'inventory.transfer_dispatch'])
         <a href="{{ route('transfers.index') }}"
            class="nav-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
             <i class="fas fa-truck-moving"></i> Transfers
@@ -109,12 +109,12 @@
             <i class="fas fa-file-invoice"></i> Purchase Orders
         </a>
 
-        @if(Route::has('grn.index'))
+        @can('purchase_orders.receive')
         <a href="{{ route('grn.index') }}"
            class="nav-item {{ request()->routeIs('grn.*') ? 'active' : '' }}">
             <i class="fas fa-truck-ramp-box"></i> Receive (GRN)
         </a>
-        @endif
+        @endcan
 
         @if(Route::has('requisitions.index'))
         @can('purchase_orders.manage')
