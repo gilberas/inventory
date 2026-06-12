@@ -74,6 +74,13 @@ class CustomerController extends Controller
         return response()->json(['data' => $segments]);
     }
 
+    // ── GET /customers/create ─────────────────────────────────────────────────
+
+    public function create()
+    {
+        return view('customers.form');
+    }
+
     // ── POST /customers ───────────────────────────────────────────────────────
 
     public function store(Request $request)
@@ -101,7 +108,12 @@ class CustomerController extends Controller
             ]);
         });
 
-        return response()->json(['customer' => $customer], 201);
+        if ($request->expectsJson()) {
+            return response()->json(['customer' => $customer], 201);
+        }
+
+        return redirect()->route('customers.index')
+            ->with('success', 'Customer created successfully.');
     }
 
     // ── GET /customers/{customer} — profile + stats ───────────────────────────
@@ -121,7 +133,18 @@ class CustomerController extends Controller
             'balance'         => (float) $customer->balance,
         ];
 
-        return response()->json(['customer' => $customer, 'stats' => $stats]);
+        if ($request->expectsJson()) {
+            return response()->json(['customer' => $customer, 'stats' => $stats]);
+        }
+
+        return view('customers.show', compact('customer', 'stats'));
+    }
+
+    // ── GET /customers/{customer}/edit ────────────────────────────────────────
+
+    public function edit(Customer $customer)
+    {
+        return view('customers.form', compact('customer'));
     }
 
     // ── PUT /customers/{customer} ─────────────────────────────────────────────
@@ -153,7 +176,12 @@ class CustomerController extends Controller
             ]);
         });
 
-        return response()->json(['customer' => $customer->fresh('tags')]);
+        if ($request->expectsJson()) {
+            return response()->json(['customer' => $customer->fresh('tags')]);
+        }
+
+        return redirect()->route('customers.show', $customer)
+            ->with('success', 'Customer updated successfully.');
     }
 
     // ── GET /customers/{customer}/history ─────────────────────────────────────
@@ -256,6 +284,11 @@ class CustomerController extends Controller
             ]);
         });
 
-        return response()->json(['message' => 'Customer deleted.']);
+        if (request()->expectsJson()) {
+            return response()->json(['message' => 'Customer deleted.']);
+        }
+
+        return redirect()->route('customers.index')
+            ->with('success', 'Customer deleted.');
     }
 }

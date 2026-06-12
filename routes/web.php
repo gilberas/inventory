@@ -290,9 +290,10 @@ Route::middleware(['auth'])->group(function () {
     // ── Customers ─────────────────────────────────────────────
     Route::prefix('customers')->name('customers.')->group(function () {
         // Static routes BEFORE /{customer} parametric route (Hard Rule §6)
-        Route::get('/',            [CustomerController::class, 'index'])->name('index')->middleware('permission:customers.manage|customers.manage_own');
-        Route::get('/segments',    [CustomerController::class, 'segments'])->name('segments')->middleware('permission:customers.manage|customers.manage_own');
-        Route::post('/',           [CustomerController::class, 'store'])->name('store')->middleware('permission:customers.manage|customers.manage_own');
+        Route::get('/',        [CustomerController::class, 'index'])->name('index')->middleware('permission:customers.manage|customers.manage_own');
+        Route::get('/create',  [CustomerController::class, 'create'])->name('create')->middleware('permission:customers.manage');
+        Route::get('/segments',[CustomerController::class, 'segments'])->name('segments')->middleware('permission:customers.manage|customers.manage_own');
+        Route::post('/',       [CustomerController::class, 'store'])->name('store')->middleware('permission:customers.manage');
 
         // Sub-resource routes registered BEFORE /{customer} catch-all
         Route::get('/{customer}/history',              [CustomerController::class, 'history'])->name('history')->middleware('permission:customers.manage|customers.manage_own');
@@ -301,10 +302,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{customer}/tags/{tag}',        [CustomerController::class, 'removeTag'])->name('tags.remove')->middleware('permission:customers.manage|customers.manage_own');
 
         // CRUD
-        Route::get('/{customer}',    [CustomerController::class, 'show'])->name('show')->middleware('permission:customers.manage|customers.manage_own');
-        Route::put('/{customer}',    [CustomerController::class, 'update'])->name('update')->middleware('permission:customers.manage|customers.manage_own');
-        Route::patch('/{customer}',  [CustomerController::class, 'update'])->middleware('permission:customers.manage|customers.manage_own');
-        Route::delete('/{customer}', [CustomerController::class, 'destroy'])->name('destroy')->middleware('permission:customers.manage');
+        Route::get('/{customer}/edit', [CustomerController::class, 'edit'])->name('edit')->middleware('permission:customers.manage');
+        Route::get('/{customer}',      [CustomerController::class, 'show'])->name('show')->middleware('permission:customers.manage|customers.manage_own');
+        Route::put('/{customer}',      [CustomerController::class, 'update'])->name('update')->middleware('permission:customers.manage');
+        Route::patch('/{customer}',    [CustomerController::class, 'update'])->middleware('permission:customers.manage');
+        Route::delete('/{customer}',   [CustomerController::class, 'destroy'])->name('destroy')->middleware('permission:customers.manage');
     });
 
     // ── Sales (B2B orders) ────────────────────────────────────
@@ -348,22 +350,22 @@ Route::middleware(['auth'])->group(function () {
     // ── Expenses ─────────────────────────────────────────────
     Route::prefix('expenses')->name('expenses.')->group(function () {
         // Static routes BEFORE /{expense} to avoid route conflicts
-        Route::get('/',         [ExpenseController::class, 'index'])->name('index')->middleware('permission:expenses.view');
+        Route::get('/',         [ExpenseController::class, 'index'])->name('index')->middleware('permission:expenses.manage|expenses.view');
         Route::post('/',        [ExpenseController::class, 'store'])->name('store')->middleware('permission:expenses.manage');
-        Route::get('/summary',  [ExpenseController::class, 'summary'])->name('summary')->middleware('permission:expenses.view');
-        Route::get('/budgets',  [ExpenseController::class, 'indexBudgets'])->name('budgets.index')->middleware('permission:expenses.view');
+        Route::get('/summary',  [ExpenseController::class, 'summary'])->name('summary')->middleware('permission:expenses.manage|expenses.view');
+        Route::get('/budgets',  [ExpenseController::class, 'indexBudgets'])->name('budgets.index')->middleware('permission:expenses.manage|expenses.view');
         Route::post('/budgets', [ExpenseController::class, 'storeBudget'])->name('budgets.store')->middleware('permission:expenses.manage');
 
         // Per-expense routes
-        Route::get('/{expense}',             [ExpenseController::class, 'show'])->name('show')->middleware('permission:expenses.view');
+        Route::get('/{expense}',             [ExpenseController::class, 'show'])->name('show')->middleware('permission:expenses.manage|expenses.view');
         Route::put('/{expense}',             [ExpenseController::class, 'update'])->name('update')->middleware('permission:expenses.manage');
         Route::patch('/{expense}',           [ExpenseController::class, 'update'])->middleware('permission:expenses.manage');
         Route::post('/{expense}/submit',     [ExpenseController::class, 'submit'])->name('submit')->middleware('permission:expenses.manage');
         Route::post('/{expense}/approve',    [ExpenseController::class, 'approve'])->name('approve')->middleware('permission:expenses.manage');
         Route::post('/{expense}/reject',     [ExpenseController::class, 'reject'])->name('reject')->middleware('permission:expenses.manage');
         Route::post('/{expense}/receipt',    [ExpenseController::class, 'uploadReceipt'])->name('receipt')->middleware('permission:expenses.manage');
-        Route::get('/{expense}/export-pdf',  [ExpenseController::class, 'exportPdf'])->name('export-pdf')->middleware('permission:expenses.view');
-        Route::get('/{expense}/export-excel',[ExpenseController::class, 'exportExcel'])->name('export-excel')->middleware('permission:expenses.view');
+        Route::get('/{expense}/export-pdf',  [ExpenseController::class, 'exportPdf'])->name('export-pdf')->middleware('permission:expenses.manage|expenses.view');
+        Route::get('/{expense}/export-excel',[ExpenseController::class, 'exportExcel'])->name('export-excel')->middleware('permission:expenses.manage|expenses.view');
     });
 
     // ── Reports ───────────────────────────────────────────────
@@ -464,5 +466,16 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:employees.manage_branch')->group(function () {
         Route::post('/attendance/{employee}/clock-in',  [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
         Route::post('/attendance/{employee}/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+    });
+
+    // ── Settings (tenant-level) ───────────────────────────────
+    Route::get('/settings', fn () => view('coming-soon'))
+        ->name('settings.index')
+        ->middleware('permission:system.configure_tenant');
+
+    // ── Admin — platform management (super_admin only) ────────
+    Route::prefix('admin')->name('admin.')->middleware('permission:platform.manage')->group(function () {
+        Route::get('/tenants', fn () => view('coming-soon'))->name('tenants.index');
+        Route::get('/plans',   fn () => view('coming-soon'))->name('plans.index');
     });
 });
