@@ -35,8 +35,8 @@
 @section('content')
 
 {{-- ── POS LAUNCH BUTTON ──────────────────────────────────────────────── --}}
-@if(Route::has('pos.index'))
-<a href="{{ route('pos.index') }}" class="pos-btn">
+@if(Route::has('pos.terminal'))
+<a href="{{ route('pos.terminal') }}" class="pos-btn">
     <i class="fas fa-cash-register" style="font-size:1.3rem"></i>
     {{ $open_session ? 'Continue POS Session' : 'Start Shift & Open POS' }}
 </a>

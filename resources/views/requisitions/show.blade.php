@@ -79,7 +79,7 @@
     {{-- Generate PO button (approved only) --}}
     @if($requisition->status === \App\Models\PurchaseRequisition::STATUS_APPROVED)
     <div class="mx-4 mt-4">
-        <a href="{{ route('purchase-orders.create', ['requisition_id' => $requisition->id]) }}"
+        <a href="{{ route('purchases.create', ['requisition_id' => $requisition->id]) }}"
            class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-semibold py-4 rounded-2xl shadow-sm transition text-base">
             Generate Purchase Order
         </a>

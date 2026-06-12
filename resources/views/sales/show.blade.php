@@ -70,7 +70,7 @@
         @if($sale->amountDue() > 0)
         <div class="bg-white rounded-xl shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 mb-3">Add Payment</h3>
-            <form method="POST" action="{{ route('sales.addPayment', $sale) }}" class="space-y-3">
+            <form method="POST" action="{{ route('sales.payment', $sale) }}" class="space-y-3">
                 @csrf
                 <div>
                     <label class="label">Amount</label>
