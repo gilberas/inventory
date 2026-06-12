@@ -84,7 +84,7 @@
     </div>
 
     {{-- AC-1: Breakdown by tax rate --}}
-    @if($data['collectedByRate']->isNotEmpty() || $data['paidByRate']->isNotEmpty())
+    @if(collect($data['collectedByRate'] ?? [])->isNotEmpty() || collect($data['paidByRate'] ?? [])->isNotEmpty())
     <div class="row mt-2">
         {{-- Collected breakdown --}}
         <div class="col-md-6">
