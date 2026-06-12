@@ -3,23 +3,16 @@
 
 @push('styles')
 <style>
-    .kpi-section-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:1.5rem 0 .75rem; }
-    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.875rem; }
-    .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.1rem 1.25rem; display:flex; flex-direction:column; gap:.35rem; }
-    .kpi-icon { font-size:.9rem; margin-bottom:.2rem; }
-    .kpi-value { font-size:1.55rem; font-weight:800; line-height:1; }
-    .kpi-label { font-size:.75rem; color:var(--muted); }
-    .kpi-card.success { border-color:rgba(34,197,94,.4); }
-    .kpi-card.sky     { border-color:rgba(56,189,248,.4); }
-    .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-top:1.25rem; }
-    .chart-card h3 { font-size:.875rem; font-weight:700; margin-bottom:1rem; }
-    .pos-btn { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; padding:1.25rem 2rem; font-size:1.1rem; font-weight:800; background:var(--success); color:#fff; border:none; border-radius:12px; cursor:pointer; text-decoration:none; margin-bottom:1.5rem; transition:opacity .15s; }
-    .pos-btn:hover { opacity:.88; }
-    .session-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.25rem; margin-bottom:1rem; display:flex; align-items:center; gap:1rem; }
-    .session-indicator { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-    .session-indicator.active { background:var(--success); box-shadow:0 0 0 3px rgba(34,197,94,.25); }
-    .session-indicator.inactive { background:var(--muted); }
-    .notif-badge { position:absolute; top:-4px; right:-4px; background:var(--danger); color:#fff; border-radius:999px; font-size:.65rem; font-weight:700; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+    .pos-btn{display:flex;align-items:center;justify-content:center;gap:.75rem;width:100%;
+             padding:1.25rem 2rem;font-size:1.1rem;font-weight:800;background:var(--success);
+             color:#fff;border:none;border-radius:12px;cursor:pointer;text-decoration:none;
+             margin-bottom:1.5rem;transition:opacity .15s}
+    .pos-btn:hover{opacity:.88}
+    .session-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+                  padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem}
+    .session-indicator{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .session-indicator.active{background:var(--success);box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+    .session-indicator.inactive{background:var(--muted)}
 </style>
 @endpush
 
@@ -34,11 +27,24 @@
 
 @section('content')
 
-{{-- ── POS LAUNCH BUTTON ──────────────────────────────────────────────── --}}
+@php
+$hour     = (int) now()->format('H');
+$greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+$firstName = explode(' ', auth()->user()->name)[0];
+$avgTransaction = $my_transactions_today > 0
+    ? round($my_sales_today / $my_transactions_today, 2) : 0;
+@endphp
+
+<div class="dash-greeting">
+    <h1>{{ $greeting }}, {{ $firstName }}!</h1>
+    <p>{{ now()->format('l, d F Y') }} &nbsp;·&nbsp; Your shift overview</p>
+</div>
+
+{{-- ── POS LAUNCH ──────────────────────────────────────────────────────── --}}
 @if(Route::has('pos.terminal'))
 <a href="{{ route('pos.terminal') }}" class="pos-btn">
     <i class="fas fa-cash-register" style="font-size:1.3rem"></i>
-    {{ $open_session ? 'Continue POS Session' : 'Start Shift & Open POS' }}
+    {{ $open_session ? 'Continue POS Session' : 'Start Shift &amp; Open POS' }}
 </a>
 @endif
 
@@ -62,16 +68,9 @@
 {{-- ── MY PERFORMANCE TODAY ───────────────────────────────────────────── --}}
 <p class="kpi-section-title"><i class="fas fa-chart-simple"></i> &nbsp;My Performance Today</p>
 <div class="kpi-grid">
-    <div class="kpi-card success">
-        <span class="kpi-icon" style="color:var(--success)"><i class="fas fa-sack-dollar"></i></span>
-        <span class="kpi-value" style="color:var(--success)">{{ number_format($my_sales_today, 2) }}</span>
-        <span class="kpi-label">Sales Today (TZS)</span>
-    </div>
-    <div class="kpi-card sky">
-        <span class="kpi-icon" style="color:var(--info)"><i class="fas fa-receipt"></i></span>
-        <span class="kpi-value" style="color:var(--info)">{{ number_format($my_transactions_today) }}</span>
-        <span class="kpi-label">Transactions Today</span>
-    </div>
+    <x-kpi-card title="Sales Today (TZS)"  value="{{ number_format($my_sales_today, 2) }}"      icon="sack-dollar" color="green" />
+    <x-kpi-card title="Transactions"       value="{{ number_format($my_transactions_today) }}"   icon="receipt"     color="blue" />
+    <x-kpi-card title="Avg Transaction"    value="{{ number_format($avgTransaction, 2) }}"        icon="calculator"  color="primary" />
 </div>
 
 {{-- ── RECENT SALES ───────────────────────────────────────────────────── --}}
@@ -86,21 +85,14 @@
         <div class="table-wrapper">
             <table>
                 <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Amount</th>
-                        <th>Payment</th>
-                        <th>Status</th>
-                    </tr>
+                    <tr><th>Time</th><th>Amount</th><th>Payment</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                     @foreach($my_recent_sales as $sale)
                     <tr>
                         <td style="color:var(--muted);font-size:.8rem">{{ \Carbon\Carbon::parse($sale->created_at)->format('H:i') }}</td>
                         <td style="font-weight:700;color:var(--success)">{{ number_format($sale->grand_total, 2) }}</td>
-                        <td>
-                            <span class="badge badge-sky">{{ ucfirst($sale->payment_method) }}</span>
-                        </td>
+                        <td><span class="badge badge-sky">{{ ucfirst($sale->payment_method) }}</span></td>
                         <td>
                             <span class="badge {{ $sale->status === 'completed' ? 'badge-green' : 'badge-amber' }}">
                                 {{ ucfirst($sale->status) }}

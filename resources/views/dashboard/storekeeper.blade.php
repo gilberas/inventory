@@ -3,20 +3,8 @@
 
 @push('styles')
 <style>
-    .kpi-section-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:1.5rem 0 .75rem; }
-    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.875rem; }
-    .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.1rem 1.25rem; display:flex; flex-direction:column; gap:.35rem; }
-    .kpi-icon { font-size:.9rem; margin-bottom:.2rem; }
-    .kpi-value { font-size:1.55rem; font-weight:800; line-height:1; }
-    .kpi-label { font-size:.75rem; color:var(--muted); }
-    .kpi-card.danger  { border-color:rgba(239,68,68,.4); }
-    .kpi-card.warning { border-color:rgba(245,158,11,.4); }
-    .kpi-card.success { border-color:rgba(34,197,94,.4); }
-    .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-top:1.25rem; }
-    .chart-card h3 { font-size:.875rem; font-weight:700; margin-bottom:1rem; }
-    .stock-bar { height:6px; border-radius:3px; background:var(--border); overflow:hidden; margin-top:.35rem; }
-    .stock-bar-fill { height:100%; border-radius:3px; transition:width .3s; }
-    .notif-badge { position:absolute; top:-4px; right:-4px; background:var(--danger); color:#fff; border-radius:999px; font-size:.65rem; font-weight:700; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+    .stock-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:.35rem}
+    .stock-bar-fill{height:100%;border-radius:3px;transition:width .3s}
 </style>
 @endpush
 
@@ -31,44 +19,31 @@
 
 @section('content')
 
-{{-- ── STOCK ALERT OVERVIEW ───────────────────────────────────────────── --}}
+@php
+$hour     = (int) now()->format('H');
+$greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+$firstName = explode(' ', auth()->user()->name)[0];
+@endphp
+
+<div class="dash-greeting">
+    <h1>{{ $greeting }}, {{ $firstName }}!</h1>
+    <p>{{ now()->format('l, d F Y') }} &nbsp;·&nbsp; Warehouse overview</p>
+</div>
+
+{{-- ── STOCK ALERTS ────────────────────────────────────────────────────── --}}
 <p class="kpi-section-title"><i class="fas fa-triangle-exclamation"></i> &nbsp;Stock Alerts</p>
 <div class="kpi-grid">
-    <div class="kpi-card {{ $inventory['lowStockCount'] > 0 ? 'warning' : 'success' }}">
-        <span class="kpi-icon" style="color:var(--warning)"><i class="fas fa-exclamation-triangle"></i></span>
-        <span class="kpi-value" style="color:var(--warning)">{{ number_format($inventory['lowStockCount']) }}</span>
-        <span class="kpi-label">Low Stock Items</span>
-    </div>
-    <div class="kpi-card {{ $inventory['outOfStockCount'] > 0 ? 'danger' : 'success' }}">
-        <span class="kpi-icon" style="color:var(--danger)"><i class="fas fa-times-circle"></i></span>
-        <span class="kpi-value" style="color:var(--danger)">{{ number_format($inventory['outOfStockCount']) }}</span>
-        <span class="kpi-label">Out of Stock</span>
-    </div>
-    <div class="kpi-card {{ $inventory['expiringSoonCount'] > 0 ? 'warning' : '' }}">
-        <span class="kpi-icon" style="color:var(--warning)"><i class="fas fa-calendar-times"></i></span>
-        <span class="kpi-value">{{ number_format($inventory['expiringSoonCount']) }}</span>
-        <span class="kpi-label">Expiring ≤ 30 Days</span>
-    </div>
-    <div class="kpi-card {{ $grns_confirmed_today > 0 ? 'success' : '' }}">
-        <span class="kpi-icon" style="color:var(--success)"><i class="fas fa-truck-ramp-box"></i></span>
-        <span class="kpi-value" style="color:var(--success)">{{ number_format($grns_confirmed_today) }}</span>
-        <span class="kpi-label">GRNs Confirmed Today</span>
-    </div>
+    <x-kpi-card title="Low Stock Items"      value="{{ number_format($inventory['lowStockCount']) }}"    icon="exclamation-triangle" color="{{ $inventory['lowStockCount'] > 0 ? 'orange' : 'green' }}" :href="route('reports.low-stock')" />
+    <x-kpi-card title="Out of Stock"         value="{{ number_format($inventory['outOfStockCount']) }}"  icon="times-circle"         color="{{ $inventory['outOfStockCount'] > 0 ? 'red' : 'green' }}" />
+    <x-kpi-card title="Expiring ≤ 30 Days"   value="{{ number_format($inventory['expiringSoonCount']) }}" icon="calendar-times"       color="{{ $inventory['expiringSoonCount'] > 0 ? 'orange' : 'primary' }}" />
+    <x-kpi-card title="GRNs Confirmed Today" value="{{ number_format($grns_confirmed_today) }}"          icon="truck-ramp-box"        color="{{ $grns_confirmed_today > 0 ? 'green' : 'primary' }}" />
 </div>
 
 {{-- ── TRANSFERS ───────────────────────────────────────────────────────── --}}
 <p class="kpi-section-title"><i class="fas fa-truck-moving"></i> &nbsp;Transfers</p>
 <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-    <div class="kpi-card {{ $transfers_to_dispatch > 0 ? 'warning' : '' }}">
-        <span class="kpi-icon" style="color:var(--warning)"><i class="fas fa-arrow-up-from-bracket"></i></span>
-        <span class="kpi-value">{{ number_format($transfers_to_dispatch) }}</span>
-        <span class="kpi-label">Awaiting Dispatch</span>
-    </div>
-    <div class="kpi-card {{ $transfers_to_receive > 0 ? 'sky' : '' }}">
-        <span class="kpi-icon" style="color:var(--info)"><i class="fas fa-arrow-down-to-bracket"></i></span>
-        <span class="kpi-value">{{ number_format($transfers_to_receive) }}</span>
-        <span class="kpi-label">In Transit (to receive)</span>
-    </div>
+    <x-kpi-card title="Awaiting Dispatch"     value="{{ number_format($transfers_to_dispatch) }}" icon="arrow-up-from-bracket"   color="{{ $transfers_to_dispatch > 0 ? 'orange' : 'primary' }}" />
+    <x-kpi-card title="In Transit (to receive)" value="{{ number_format($transfers_to_receive) }}" icon="arrow-down-to-bracket" color="{{ $transfers_to_receive > 0 ? 'blue' : 'primary' }}" />
 </div>
 
 {{-- ── LOW STOCK TABLE ────────────────────────────────────────────────── --}}
@@ -88,7 +63,7 @@
                 <tbody>
                     @foreach($low_stock_products as $p)
                     @php
-                        $pct = $p->reorder_level > 0 ? min(100, round(($p->quantity / $p->reorder_level) * 100)) : 100;
+                        $pct   = $p->reorder_level > 0 ? min(100, round(($p->quantity / $p->reorder_level) * 100)) : 100;
                         $color = $pct <= 25 ? 'var(--danger)' : ($pct <= 60 ? 'var(--warning)' : 'var(--success)');
                     @endphp
                     <tr>
@@ -109,7 +84,7 @@
     @endif
 </div>
 
-{{-- ── EXPIRING PRODUCTS TABLE ────────────────────────────────────────── --}}
+{{-- ── EXPIRING PRODUCTS ───────────────────────────────────────────────── --}}
 @if($expiring_products->isNotEmpty())
 <div class="chart-card">
     <h3><i class="fas fa-calendar-times" style="color:var(--warning)"></i> &nbsp;Expiring Products (Next 30 Days)</h3>
@@ -128,7 +103,7 @@
                     <td style="font-weight:600">{{ $p->name }}</td>
                     <td style="color:var(--muted);font-size:.8rem">{{ $p->sku }}</td>
                     <td>{{ \Carbon\Carbon::parse($p->expiry_date)->format('d M Y') }}</td>
-                    <td><span class="badge" style="color:{{ $expColor }};background:transparent;padding:0">{{ $daysLeft }}d</span></td>
+                    <td><span style="color:{{ $expColor }};font-weight:600;font-size:.8rem">{{ $daysLeft }}d</span></td>
                     <td style="text-align:right">{{ number_format($p->quantity, 2) }}</td>
                 </tr>
                 @endforeach
