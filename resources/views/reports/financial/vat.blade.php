@@ -100,7 +100,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($data['collectedByRate'] as $row)
+                            @forelse($data['collectedByRate'] ?? collect() as $row)
+                            @php $row = (object) $row; @endphp
                             <tr>
                                 <td>{{ number_format($row->tax_rate, 1) }}%</td>
                                 <td class="text-end">{{ number_format($row->taxable_amount, 2) }}</td>
@@ -129,7 +130,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($data['paidByRate'] as $row)
+                            @forelse($data['paidByRate'] ?? collect() as $row)
+                            @php $row = (object) $row; @endphp
                             <tr>
                                 <td>{{ number_format($row->tax_rate, 1) }}%</td>
                                 <td class="text-end">{{ number_format($row->taxable_amount, 2) }}</td>

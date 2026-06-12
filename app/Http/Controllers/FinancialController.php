@@ -343,9 +343,9 @@ class FinancialController extends Controller
             $tenantId, $branchId, $startDate, $endDate
         ));
 
-        // Guarantee Collection type after cache deserialisation (cached stdClass arrays become plain arrays)
-        $data['collectedByRate'] = collect($data['collectedByRate'] ?? []);
-        $data['paidByRate']      = collect($data['paidByRate'] ?? []);
+        // After cache deserialization stdClass items can become plain arrays; cast back to objects.
+        $data['collectedByRate'] = collect($data['collectedByRate'] ?? [])->map(fn ($r) => (object) $r);
+        $data['paidByRate']      = collect($data['paidByRate'] ?? [])->map(fn ($r) => (object) $r);
 
         $tenant        = auth()->user()->tenant;
         $sequentialRef = 'VAT-' . now()->format('Ymd') . '-' . str_pad((string) $tenantId, 4, '0', STR_PAD_LEFT);
