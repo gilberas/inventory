@@ -18,12 +18,13 @@ RUN apk add --no-cache \
 # PHP extensions Laravel commonly needs
 RUN docker-php-ext-install \
     pdo \
-    pdo_mysql \
+    pdo_pgsql \
     zip \
     gd \
     bcmath \
     mbstring \
-    xml
+    xml \
+    exif
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
