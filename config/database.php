@@ -64,6 +64,22 @@ return [
             ]) : [],
         ],
 
+        // Read replica — used by DashboardMetricsService when DB_READ_HOST is set.
+        // Falls back to the primary host when DB_READ_HOST is not configured.
+        'mysql-read' => [
+            'driver'    => 'mysql',
+            'host'      => env('DB_READ_HOST', env('DB_HOST', '127.0.0.1')),
+            'port'      => env('DB_READ_PORT', env('DB_PORT', '3306')),
+            'database'  => env('DB_DATABASE', 'laravel'),
+            'username'  => env('DB_READ_USERNAME', env('DB_USERNAME', 'root')),
+            'password'  => env('DB_READ_PASSWORD', env('DB_PASSWORD', '')),
+            'charset'   => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix'    => '',
+            'strict'    => true,
+            'engine'    => 'InnoDB',
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

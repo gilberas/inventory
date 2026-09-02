@@ -90,10 +90,17 @@
             @enderror
         </div>
 
-        {{-- Remember me --}}
-        <label class="remember">
-            <input type="checkbox" name="remember"> Remember me for 30 days
-        </label>
+        {{-- Remember me + forgot password --}}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+            <label class="remember" style="margin-bottom:0">
+                <input type="checkbox" name="remember"> Remember me
+            </label>
+            @if(Route::has('password.request'))
+            <a href="{{ route('password.request') }}" style="font-size:.8rem;color:var(--primary);text-decoration:none;">
+                Forgot password?
+            </a>
+            @endif
+        </div>
 
         <button type="submit" class="btn-submit">
             <i class="fas fa-sign-in-alt"></i> Sign In

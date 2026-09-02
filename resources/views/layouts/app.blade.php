@@ -87,6 +87,24 @@
         .empty-state i { font-size:3rem; margin-bottom:1rem; opacity:.4; display:block; }
         .empty-state h3 { color:var(--text); margin-bottom:.5rem; }
         @media(max-width:768px){ .sidebar{transform:translateX(-100%);transition:transform .25s} .sidebar.open{transform:translateX(0)} .main{margin-left:0} }
+        /* ── Dashboard shared ────────────────────────────────────────── */
+        .dash-greeting{margin-bottom:1.5rem}
+        .dash-greeting h1{font-size:1.5rem;font-weight:800;color:var(--text)}
+        .dash-greeting p{font-size:.875rem;color:var(--muted);margin-top:.25rem}
+        .kpi-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:1.5rem 0 .75rem}
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.875rem}
+        .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.35rem}
+        .kpi-card a{text-decoration:none}
+        .kpi-icon{font-size:.9rem;margin-bottom:.2rem}
+        .kpi-value{font-size:1.55rem;font-weight:800;line-height:1}
+        .kpi-label{font-size:.75rem;color:var(--muted)}
+        .kpi-sub{font-size:.7rem;color:var(--muted);margin-top:.1rem}
+        .kpi-trend{font-size:.7rem;margin-top:.1rem}
+        .kpi-card.danger{border-color:rgba(239,68,68,.4)} .kpi-card.warning{border-color:rgba(245,158,11,.4)}
+        .kpi-card.success{border-color:rgba(34,197,94,.4)} .kpi-card.sky{border-color:rgba(56,189,248,.4)}
+        .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-top:1.25rem}
+        .chart-card h3{font-size:.875rem;font-weight:700;margin-bottom:1rem}
+        .notif-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
     </style>
     @stack('styles')
 </head>
@@ -102,6 +120,27 @@
         </div>
         <div class="content">
             @include('partials.alerts')
+
+            @auth
+            @if(auth()->user()->must_change_password && !session('pw_notice_dismissed'))
+            <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:.875rem 1.1rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                <span style="color:#fbbf24;font-size:.875rem;display:flex;align-items:center;gap:.5rem;">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <strong>Action required:</strong> Please change your password — you are using a temporary password.
+                    @if(Route::has('profile.edit'))
+                    <a href="{{ route('profile.edit') }}" style="color:#fbbf24;font-weight:700;text-decoration:underline;">Change now</a>
+                    @endif
+                </span>
+                <form method="POST" action="{{ route('banner.dismiss.password') }}" style="margin:0">
+                    @csrf
+                    <button type="submit" style="background:none;border:none;color:#fbbf24;cursor:pointer;font-size:.8rem;opacity:.7">
+                        <i class="fas fa-xmark"></i> Dismiss
+                    </button>
+                </form>
+            </div>
+            @endif
+            @endauth
+
             @yield('content')
         </div>
     </div>

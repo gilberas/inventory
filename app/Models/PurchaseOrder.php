@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
-class PurchaseOrder extends Model
+class PurchaseOrder extends TenantModel
 {
     use SoftDeletes;
 
@@ -16,6 +15,8 @@ class PurchaseOrder extends Model
         'reference_no',
         'supplier_id',
         'warehouse_id',
+        'branch_id',
+        'requisition_id',
         'created_by',
         'approved_by',
         'status',
@@ -80,6 +81,21 @@ class PurchaseOrder extends Model
     public function goodsReceipts()
     {
         return $this->hasMany(GoodsReceipt::class);
+    }
+
+    public function goodsReceivedNotes()
+    {
+        return $this->hasMany(GoodsReceivedNote::class, 'purchase_order_id');
+    }
+
+    public function requisition()
+    {
+        return $this->belongsTo(PurchaseRequisition::class, 'requisition_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     // ── Scopes ────────────────────────────────────────────────
@@ -148,6 +164,7 @@ class PurchaseOrder extends Model
 
     protected static function booted(): void
     {
+        parent::booted(); // TenantModel sets tenant_id first
         static::creating(function (PurchaseOrder $po) {
             if (empty($po->reference_no)) {
                 $count = static::whereDate('created_at', today())->count() + 1;

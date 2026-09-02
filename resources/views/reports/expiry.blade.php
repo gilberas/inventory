@@ -10,17 +10,28 @@
 
 @section('content')
 
-{{-- Days filter --}}
+@if(session('success'))
+<div class="alert alert-success" style="margin-bottom:1rem;">{{ session('success') }}</div>
+@endif
+
+{{-- Filters --}}
 <div class="card" style="margin-bottom:1.25rem;">
     <form method="GET" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;">
         <div>
-            <label style="display:block;margin-bottom:.4rem;">Show items expiring within</label>
-            <select name="days" style="width:180px;">
-                <option value="7"  {{ $days == 7  ? 'selected' : '' }}>7 days</option>
-                <option value="14" {{ $days == 14 ? 'selected' : '' }}>14 days</option>
-                <option value="30" {{ $days == 30 ? 'selected' : '' }}>30 days</option>
-                <option value="60" {{ $days == 60 ? 'selected' : '' }}>60 days</option>
-                <option value="90" {{ $days == 90 ? 'selected' : '' }}>90 days</option>
+            <label style="display:block;margin-bottom:.4rem;">Expiring within</label>
+            <select name="days" style="min-width:160px;">
+                @foreach([7, 14, 30, 60, 90] as $d)
+                <option value="{{ $d }}" {{ $days == $d ? 'selected' : '' }}>{{ $d }} days</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label style="display:block;margin-bottom:.4rem;">Category</label>
+            <select name="category_id" style="min-width:180px;">
+                <option value="">All categories</option>
+                @foreach($categories as $cat)
+                <option value="{{ $cat->id }}" {{ $categoryId == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                @endforeach
             </select>
         </div>
         <button type="submit" class="btn btn-primary btn-sm">
@@ -49,36 +60,62 @@
                 <thead>
                     <tr>
                         <th>Product</th>
+                        <th>Category</th>
                         <th>Batch No.</th>
                         <th style="text-align:right;">Qty</th>
                         <th>Expiry Date</th>
                         <th>Days Left</th>
                         <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($expiringSoon as $batch)
-                    @php $daysLeft = now()->diffInDays($batch->expiry_date, false); @endphp
-                    <tr>
+                    @php
+                        $daysLeft = now()->diffInDays($batch->expiry_date, false);
+                        $rowStyle = $daysLeft <= 7
+                            ? 'background:#fff5f5;border-left:4px solid #ef4444;'
+                            : ($daysLeft <= 14
+                                ? 'background:#fff7ed;border-left:4px solid #f97316;'
+                                : 'background:#fffbeb;border-left:4px solid #f59e0b;');
+                        $isPromo = str_contains($batch->notes ?? '', 'Flagged for Promotion');
+                    @endphp
+                    <tr style="{{ $rowStyle }}">
                         <td>
                             <a href="{{ route('products.show', $batch->product) }}" style="color:var(--primary);text-decoration:none;font-weight:500;">
                                 {{ $batch->product->name }}
                             </a>
                             <div style="font-size:.75rem;font-family:monospace;color:var(--muted);">{{ $batch->product->sku }}</div>
                         </td>
+                        <td>{{ $batch->product->category?->name ?? '—' }}</td>
                         <td><span class="badge badge-gray">{{ $batch->batch_number }}</span></td>
                         <td style="text-align:right;">{{ number_format($batch->quantity, 2) }} {{ $batch->product->unit?->abbreviation }}</td>
                         <td>{{ $batch->expiry_date->format('d M Y') }}</td>
                         <td>
-                            <span style="font-weight:700;color:{{ $daysLeft <= 7 ? 'var(--danger)' : 'var(--warning)' }};">
+                            <span style="font-weight:700;color:{{ $daysLeft <= 7 ? '#ef4444' : ($daysLeft <= 14 ? '#f97316' : '#f59e0b') }};">
                                 {{ $daysLeft }} days
                             </span>
                         </td>
                         <td>
                             @if($daysLeft <= 7)
                                 <span class="badge badge-red"><i class="fas fa-circle-exclamation"></i> Critical</span>
+                            @elseif($daysLeft <= 14)
+                                <span class="badge badge-orange"><i class="fas fa-exclamation-triangle"></i> Urgent</span>
                             @else
                                 <span class="badge badge-amber"><i class="fas fa-clock"></i> Expiring Soon</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($isPromo)
+                                <span class="badge badge-green"><i class="fas fa-tag"></i> Promo</span>
+                            @else
+                                <form method="POST" action="{{ route('reports.expiry.flag-promotion', $batch) }}" style="display:inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Flag for promotion price reduction"
+                                            style="font-size:.75rem;padding:.2rem .6rem;">
+                                        <i class="fas fa-tag"></i> Flag Promo
+                                    </button>
+                                </form>
                             @endif
                         </td>
                     </tr>
@@ -116,7 +153,7 @@
                 </thead>
                 <tbody>
                     @foreach($expired as $batch)
-                    <tr>
+                    <tr style="background:#fff5f5;">
                         <td>
                             <a href="{{ route('products.show', $batch->product) }}" style="color:var(--primary);text-decoration:none;font-weight:500;">
                                 {{ $batch->product->name }}

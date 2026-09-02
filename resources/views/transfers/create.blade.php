@@ -1,11 +1,11 @@
 @extends('layouts.app')
-@section('title', 'New Stock Transfer')
+@section('title', 'New Branch Transfer')
 @section('breadcrumb', 'Inventory / Transfers / New')
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title"><i class="fas fa-truck-fast" style="color:var(--primary)"></i> New Stock Transfer</h2>
+        <h2 class="card-title"><i class="fas fa-truck-fast" style="color:var(--primary)"></i> New Branch Transfer</h2>
     </div>
 
     <form method="POST" action="{{ route('transfers.store') }}">
@@ -14,30 +14,26 @@
         {{-- Header --}}
         <div class="form-grid" style="margin-bottom:1.5rem">
             <div class="form-group">
-                <label>From Warehouse *</label>
-                <select name="from_warehouse_id" id="fromWarehouse" required onchange="loadStock()">
-                    <option value="">Select source warehouse...</option>
-                    @foreach($warehouses as $wh)
-                        <option value="{{ $wh->id }}" {{ old('from_warehouse_id') == $wh->id ? 'selected' : '' }}>
-                            {{ $wh->name }}
+                <label>From Branch *</label>
+                <select name="from_branch_id" id="fromBranch" required>
+                    <option value="">Select source branch...</option>
+                    @foreach($branches as $branch)
+                        <option value="{{ $branch->id }}" {{ old('from_branch_id') == $branch->id ? 'selected' : '' }}>
+                            {{ $branch->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
             <div class="form-group">
-                <label>To Warehouse *</label>
-                <select name="to_warehouse_id" required>
-                    <option value="">Select destination warehouse...</option>
-                    @foreach($warehouses as $wh)
-                        <option value="{{ $wh->id }}" {{ old('to_warehouse_id') == $wh->id ? 'selected' : '' }}>
-                            {{ $wh->name }}
+                <label>To Branch *</label>
+                <select name="to_branch_id" required>
+                    <option value="">Select destination branch...</option>
+                    @foreach($branches as $branch)
+                        <option value="{{ $branch->id }}" {{ old('to_branch_id') == $branch->id ? 'selected' : '' }}>
+                            {{ $branch->name }}
                         </option>
                     @endforeach
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Transfer Date *</label>
-                <input type="date" name="transfer_date" value="{{ old('transfer_date', date('Y-m-d')) }}" required>
             </div>
             <div class="form-group full">
                 <label>Notes</label>
@@ -61,7 +57,7 @@
                     <tr>
                         <th>Product</th>
                         <th>Available Stock</th>
-                        <th>Qty to Transfer</th>
+                        <th>Qty Requested</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -80,7 +76,7 @@
                             <span id="stock-0" style="color:var(--muted);font-size:.85rem">—</span>
                         </td>
                         <td>
-                            <input type="number" name="items[0][quantity]"
+                            <input type="number" name="items[0][qty_requested]"
                                    min="0.01" step="0.01" placeholder="Qty" required style="width:110px">
                         </td>
                         <td>
@@ -92,6 +88,10 @@
                 </tbody>
             </table>
         </div>
+
+        @error('items')
+            <p style="color:var(--danger);font-size:.85rem;margin-top:.5rem">{{ $message }}</p>
+        @enderror
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
@@ -124,7 +124,7 @@ function addRow() {
         </td>
         <td><span id="stock-${i}" style="color:var(--muted);font-size:.85rem">—</span></td>
         <td>
-            <input type="number" name="items[${i}][quantity]"
+            <input type="number" name="items[${i}][qty_requested]"
                    min="0.01" step="0.01" placeholder="Qty" required style="width:110px">
         </td>
         <td>
@@ -140,31 +140,19 @@ function removeRow(i) {
 }
 
 function fetchStock(sel, i) {
-    const productId   = sel.value;
-    const warehouseId = document.getElementById('fromWarehouse').value;
-    const stockEl     = document.getElementById(`stock-${i}`);
+    const productId = sel.value;
+    const branchId  = document.getElementById('fromBranch').value;
+    const stockEl   = document.getElementById(`stock-${i}`);
 
-    if (!productId || !warehouseId) {
-        stockEl.textContent = '—';
-        return;
-    }
+    if (!productId || !branchId) { stockEl.textContent = '—'; return; }
 
-    fetch(`/inventory/stock-level?product_id=${productId}&warehouse_id=${warehouseId}`)
+    fetch(`/inventory/stock-level?product_id=${productId}&branch_id=${branchId}`)
         .then(r => r.json())
         .then(data => {
-            stockEl.textContent = data.quantity_available + ' available';
+            stockEl.textContent = (data.quantity_available ?? '—') + ' available';
             stockEl.style.color = data.quantity_available > 0 ? 'var(--accent)' : 'var(--danger)';
         })
         .catch(() => { stockEl.textContent = '—'; });
-}
-
-function loadStock() {
-    // Refresh stock for all existing rows when warehouse changes
-    document.querySelectorAll('#itemsBody tr').forEach((row) => {
-        const id  = row.id.replace('row-', '');
-        const sel = row.querySelector('select');
-        if (sel) fetchStock(sel, id);
-    });
 }
 </script>
 @endpush
