@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     oniguruma-dev \
+    libpq-dev \
     nodejs \
     npm
 
