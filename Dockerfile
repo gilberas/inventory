@@ -41,6 +41,11 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Install & build frontend assets (Vite/Tailwind)
 RUN npm install && npm run build
 
+# Fix storage permissions for www-data
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
 # Copy nginx and supervisor configs
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
