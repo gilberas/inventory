@@ -8,8 +8,11 @@ sed -i "s/PORT_PLACEHOLDER/${PORT}/" /etc/nginx/nginx.conf
 # Generate app key if missing (safe no-op if already set)
 php artisan key:generate --force || true
 
+# Clear any cached config that might have stale DB settings
+php artisan config:clear 2>&1 || true
+
 # Run database migrations FIRST (before caching config)
-php artisan migrate --force || true
+php artisan migrate --force 2>&1 || true
 
 # Cache config/routes/views for performance
 php artisan config:cache
