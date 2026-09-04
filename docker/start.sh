@@ -9,7 +9,7 @@ sed -i "s/PORT_PLACEHOLDER/${PORT}/" /etc/nginx/nginx.conf
 php artisan key:generate --force || true
 
 # Run database migrations FIRST (before caching config)
-php artisan migrate --force
+php artisan migrate --force || true
 
 # Cache config/routes/views for performance
 php artisan config:cache
