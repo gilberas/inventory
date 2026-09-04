@@ -8,13 +8,13 @@ sed -i "s/PORT_PLACEHOLDER/${PORT}/" /etc/nginx/nginx.conf
 # Generate app key if missing (safe no-op if already set)
 php artisan key:generate --force || true
 
+# Run database migrations FIRST (before caching config)
+php artisan migrate --force
+
 # Cache config/routes/views for performance
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-
-# Run database migrations
-php artisan migrate --force || true
 
 # Ensure storage/bootstrap dirs are owned by the php-fpm user
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
